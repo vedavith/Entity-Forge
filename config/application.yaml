@@ -1,0 +1,5 @@
+application:
+  name: entity-forge-app
+
+tenancy:
+  enabled: true

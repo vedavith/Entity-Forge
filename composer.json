@@ -1,32 +1,20 @@
 {
     "name": "entity-forge/entity-forge",
-    "version": "1.0",
-    "description": "EntityForge — a simple PHP library to generate and manage entity models",
+    "description": "A configuration-driven PHP framework for generating entity models and building multi-tenant SaaS applications.",
     "type": "library",
     "license": "MIT",
-    "authors": [
-        {
-            "name": "Vedavith Ravula",
-            "email": "vedavithravula1996@gmail.com"
-        }
-    ],
-    "require": {
-        "php": ">=8.0",
-        "symfony/console": "^v6.4.8",
-        "ext-pdo": "*",
-        "symfony/dependency-injection": "^v7.1.1"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^9.6"
-    },
     "autoload": {
         "psr-4": {
             "EntityForge\\": "src/"
         }
     },
-    "autoload-dev": {
-        "psr-4": {
-            "EntityForge\\Tests\\": "tests/"
-        }
-    }
+    "require": {
+        "php": "^8.1",
+        "symfony/yaml": "^8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }
