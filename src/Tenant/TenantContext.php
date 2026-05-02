@@ -30,7 +30,7 @@ class TenantContext
         return self::$tenantId !== null;
     }
 
-    public static function clearTenantId(): void
+    public static function clear(): void
     {
         self::$tenantId = null;
     }

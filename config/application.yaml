@@ -3,3 +3,5 @@ application:
 
 tenancy:
   enabled: true
+  resolver: header
+  header_key: X-Tenant-ID

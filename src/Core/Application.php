@@ -3,6 +3,8 @@
 namespace EntityForge\Core;
 use EntityForge\Config\ConfigLoader;
 use EntityForge\Config\ConfigValidator;
+use EntityForge\Tenant\TenantContext;
+use EntityForge\Tenant\TenantResolverFactory;
 use Exception;
 
 class Application
@@ -18,7 +20,7 @@ class Application
     /**
      * @throws Exception
      */
-    public function boot(): void
+    public function boot(array $context): void
     {
         $loader = new ConfigLoader();
         $validator = new ConfigValidator();
@@ -31,6 +33,12 @@ class Application
 
             $validator->validate($this->config);
 
+            if ($this->config['tenancy']['enabled'] ?? false) {
+                $resolver = TenantResolverFactory::create($this->config);
+                $tenantId = $resolver->resolve($context);
+
+                TenantContext::setTenantId($tenantId);
+            }
         } catch (\Throwable $e) {
             throw new \Exception("Application boot failed: " . $e->getMessage());
         }
