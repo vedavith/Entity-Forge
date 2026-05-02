@@ -20,28 +20,37 @@ class Application
     /**
      * @throws Exception
      */
-    public function boot(array $context): void
+    public function boot(array $context = [], bool $resolveTenant = true): void
     {
         $loader = new ConfigLoader();
         $validator = new ConfigValidator();
 
-        try {
-            $this->config = $loader->loadMultiple([
-                $this->configPath . '/saas.yaml',
-                $this->configPath . '/application.yaml'
-            ]);
+        $this->config = $loader->loadMultiple([
+            $this->configPath . '/saas.yaml',
+            $this->configPath . '/application.yaml'
+        ]);
 
-            $validator->validate($this->config);
+        $validator->validate($this->config);
 
-            if ($this->config['tenancy']['enabled'] ?? false) {
-                $resolver = TenantResolverFactory::create($this->config);
-                $tenantId = $resolver->resolve($context);
-
-                TenantContext::setTenantId($tenantId);
-            }
-        } catch (\Throwable $e) {
-            throw new \Exception("Application boot failed: " . $e->getMessage());
+        // 🔒 Tenant resolution is explicit
+        if ($resolveTenant && ($this->config['tenancy']['enabled'] ?? false)) {
+            $this->resolveTenant($context);
         }
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function resolveTenant(array $context): void
+    {
+        if (empty($context)) {
+            throw new \Exception("Tenant resolution requires context.");
+        }
+
+        $resolver = TenantResolverFactory::create($this->config);
+        $tenantId = $resolver->resolve($context);
+
+        TenantContext::setTenantId($tenantId);
     }
 
     /**

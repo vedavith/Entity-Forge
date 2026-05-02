@@ -21,6 +21,11 @@ class EntitySchema
         return $this->config['multiTenant'] ?? false;
     }
 
+    public function hasTimestamps(): bool
+    {
+        return $this->config['timestamps'] ?? false;
+    }
+
     public function getFields(): array
     {
         $fields = $this->config['fields'] ?? [];
@@ -29,6 +34,17 @@ class EntitySchema
             $fields['tenant_id'] = 'string';
         }
 
+        // Timestamp Support
+        if ($this->hasTimestamps()) {
+            $fields['created_at'] = 'string';
+            $fields['updated_at'] = 'string';
+        }
+
         return $fields;
+    }
+
+    public function getRelations(): array
+    {
+        return $this->config['relations'] ?? [];
     }
 }

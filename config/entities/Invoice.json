@@ -1,0 +1,16 @@
+{
+  "entity": "Invoice",
+  "multiTenant": true,
+  "timestamps": true,
+  "fields": {
+    "id": "int",
+    "invoice_number": "string",
+    "amount": "int",
+    "customer_id": "int"
+  },
+  "relations": {
+    "belongsTo": {
+      "Customer": "customer_id"
+    }
+  }
+}

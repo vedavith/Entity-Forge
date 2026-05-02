@@ -12,13 +12,17 @@ class RepositoryBuilder
         return <<<PHP
 <?php
 
+namespace App\Repository;
+
 use EntityForge\Repository\BaseRepository;
 
 class {$className} extends BaseRepository
 {
     public function create(array \$data): array
     {
+        unset(\$data['tenant_id']);
         \$data = \$this->applyTenantScope(\$data);
+        
         return \$data;
     }
 }

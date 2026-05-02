@@ -1,0 +1,19 @@
+#!/usr/bin/env php
+<?php
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use Symfony\Component\Console\Application;
+use EntityForge\Console\GenerateCommand;
+use EntityForge\Console\GenerateAllCommand;
+use EntityForge\Console\MigrateCommand;
+use EntityForge\Console\RollbackCommand;
+
+$application = new Application('EntityForge CLI', '1.0');
+
+$application->addCommand(new GenerateCommand());
+$application->addCommand(new GenerateAllCommand());
+$application->addCommand(new MigrateCommand());
+$application->addCommand(new RollbackCommand());
+
+$application->run();

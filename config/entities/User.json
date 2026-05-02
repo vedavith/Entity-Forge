@@ -1,0 +1,10 @@
+{
+  "entity": "User",
+  "multiTenant": true,
+  "timestamps": true,
+  "fields": {
+    "id": "int",
+    "name": "string",
+    "email": "string"
+  }
+}

@@ -16,12 +16,21 @@ class EntityBuilder
             $properties .= "    public {$this->mapType($type)} \${$name};\n";
         }
 
+        //Get Relations
+        $relationsCode = $this->buildRelations($schema);
+
         return <<<PHP
 <?php
 
+namespace App\Entity;
+
 class {$className}
 {
-{$properties}}
+{$properties}
+
+{$relationsCode}
+
+}
 PHP;
     }
 
@@ -32,5 +41,34 @@ PHP;
             'string' => 'string',
             default => 'mixed'
         };
+    }
+
+    private function buildRelations(EntitySchema $schema): string
+    {
+        $relations = $schema->getRelations();
+        $code = '';
+
+        // belongsTo
+        foreach ($relations['belongsTo'] ?? [] as $entity => $foreignKey) {
+            $method = lcfirst($entity);
+            $code .= "
+            public function {$method}(): string
+                {
+                return '{$entity} via {$foreignKey}';
+                }
+                ";
+        }
+
+        // hasMany
+        foreach ($relations['hasMany'] ?? [] as $entity => $foreignKey) {
+            $method = lcfirst($entity) . 's';
+            $code .= "
+        public function {$method}(): string
+            {
+            return '{$entity} list via {$foreignKey}';
+            }";
+        }
+
+        return $code;
     }
 }
