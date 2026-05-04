@@ -3,6 +3,7 @@
 namespace EntityForge\Core;
 use EntityForge\Config\ConfigLoader;
 use EntityForge\Config\ConfigValidator;
+use EntityForge\Core\CoreSchemaManager;
 use EntityForge\Tenant\TenantContext;
 use EntityForge\Tenant\TenantResolverFactory;
 use Exception;

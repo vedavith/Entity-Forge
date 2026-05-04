@@ -5,6 +5,7 @@ tenancy:
   enabled: true
   resolver: header
   header_key: X-Tenant-ID
+  strategy: database # shared | database
 
 database:
   driver: mysql

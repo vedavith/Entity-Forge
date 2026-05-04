@@ -8,6 +8,7 @@ use EntityForge\Console\GenerateCommand;
 use EntityForge\Console\GenerateAllCommand;
 use EntityForge\Console\MigrateCommand;
 use EntityForge\Console\RollbackCommand;
+use EntityForge\Console\TenantCreateCommand;
 
 $application = new Application('EntityForge CLI', '1.0');
 
@@ -15,5 +16,6 @@ $application->addCommand(new GenerateCommand());
 $application->addCommand(new GenerateAllCommand());
 $application->addCommand(new MigrateCommand());
 $application->addCommand(new RollbackCommand());
+$application->addCommand(new TenantCreateCommand());
 
 $application->run();

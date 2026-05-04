@@ -1,20 +1,37 @@
 <?php
 
+require __DIR__ . '/vendor/autoload.php';
 
-use App\Repository\UserRepository;
 use EntityForge\Core\Application;
+use EntityForge\Tenant\TenantProvisioner;
+use App\Repository\UserRepository;
 
 $app = new Application(__DIR__ . '/config');
+$app->boot([], false);
+
+$config = $app->getConfig();
+$tenantId = 'tenant_2';
+
+$provisioner = new TenantProvisioner($config);
+
+try {
+    $provisioner->create($tenantId);
+} catch (\Throwable $e) {
+    echo "Provisioning skipped or failed: " . $e->getMessage() . PHP_EOL;
+}
 
 $app->boot([
     'headers' => [
-        'X-Tenant-ID' => 'tenant_999'
+        'X-Tenant-ID' => $tenantId
     ]
+], true);
+
+
+$repo = new UserRepository($config);
+$user = $repo->create([
+    'name' => 'Ved',
+    'email' => 'ved@example.com'
 ]);
 
-$repo = new UserRepository();
-
-print_r($repo->create([
-    'name' => 'Ved'
-]));
-
+echo "Inserted:\n";
+print_r($user);
