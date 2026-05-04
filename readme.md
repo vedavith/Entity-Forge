@@ -1,13 +1,13 @@
 # 🚀 EntityForge
 
-**EntityForge** is an Open source configuration-driven, multi-tenant SaaS framework built in PHP.
+**EntityForge** is a WIP open source configuration-driven, multi-tenant SaaS framework built in PHP.
 
-It enables you to:
+It enables developers to build scalable SaaS applications with:
 
-* Generate applications using JSON configs
-* Run multi-tenant systems (shared DB or DB-per-tenant)
-* Automatically provision tenant infrastructure
-* Manage schema with migrations and rollback
+* JSON-based code generation
+* Multi-tenant architecture (shared or database-per-tenant)
+* Automated migrations and rollback
+* Tenant provisioning and lifecycle management
 
 ---
 
@@ -15,7 +15,7 @@ It enables you to:
 
 ## 🧩 Configuration-Driven Development
 
-Define your application using simple JSON:
+Define your application using JSON:
 
 ```json
 {
@@ -35,15 +35,8 @@ Define your application using simple JSON:
 
 Supports two strategies:
 
-### 🔹 Shared Database
-
-* Single DB
-* Uses `tenant_id` column
-
-### 🔹 Database per Tenant
-
-* Full isolation
-* Separate DB per tenant
+* **Shared Database**
+* **Database per Tenant**
 
 ---
 
@@ -77,7 +70,7 @@ php bin/ef migrate:rollback
 
 ## 🏗️ Tenant Provisioning
 
-Automatically create:
+Automatically creates:
 
 * Tenant database
 * Schema (via migrations)
@@ -90,7 +83,7 @@ php bin/ef tenant:create tenant_1
 
 ## 🧠 Tenant Registry
 
-Central table (`tenants`) tracks:
+Central `tenants` table stores:
 
 * tenant_id
 * name
@@ -100,7 +93,7 @@ Central table (`tenants`) tracks:
 
 # 📦 Installation
 
-Once merged, this will be part of entity forge package and will be available on PHP Packagist.
+This will be part of PHP Packagist and will replace the entity-forge ORM.
 
 ```bash
 composer require vedavith/entity-forge
@@ -110,12 +103,40 @@ composer require vedavith/entity-forge
 
 # ⚡ Quick Start
 
-## 1. Configure
+## 1. Configure tenancy
+
+### 🟢 Shared Database
+
+```yaml
+tenancy:
+  enabled: true
+  strategy: shared
+
+database:
+  driver: mysql
+  host: 127.0.0.1
+  port: 3306
+  database: entity_forge
+  username: root
+  password: root
+```
+
+---
+
+### 🔵 Database per Tenant
 
 ```yaml
 tenancy:
   enabled: true
   strategy: database
+
+database:
+  driver: mysql
+  host: 127.0.0.1
+  port: 3306
+  database: entity_forge
+  username: root
+  password: root
 ```
 
 ---
@@ -137,7 +158,7 @@ php bin/ef tenant:create tenant_1
 
 ---
 
-## 4. Use in code
+## 4. Use in application
 
 ```php
 $app->boot([
@@ -156,9 +177,73 @@ print_r($repo->findAll());
 
 ---
 
+# ⚙️ Configuration Details
+
+## 🟢 Shared Database Strategy
+
+All tenants share a single database.
+
+### Structure
+
+```
+entity_forge
+  └── users
+        id
+        name
+        tenant_id
+```
+
+### Characteristics
+
+* Uses `tenant_id` for isolation
+* Lower infrastructure cost
+* Easier to manage
+
+---
+
+## 🔵 Database per Tenant Strategy
+
+Each tenant gets a dedicated database.
+
+### Structure
+
+```
+entity_forge                (main DB)
+  └── tenants
+
+entity_forge_tenant_1
+  └── users
+
+entity_forge_tenant_2
+  └── users
+```
+
+### Characteristics
+
+* Full data isolation
+* No `tenant_id` column required
+* Better for enterprise use cases
+
+---
+
+## Tenant Database Naming
+
+```
+{base_database}_{tenant_id}
+```
+
+Example:
+
+```
+entity_forge_tenant_1
+entity_forge_tenant_2
+```
+
+---
+
 # 🧱 Architecture Overview
 
-```text
+```
 Application
  ├── Core (boot, config, schema)
  ├── Tenant (context, resolver, provisioning)
@@ -171,22 +256,22 @@ Application
 
 # 🔄 Tenant Lifecycle
 
-```text
+```
 Onboard → Create DB → Run Migrations → Register Tenant
 ```
 
 ---
 
-# 🗄️ Database Structure
+# 🗄️ Database Design
 
-## Main DB
+## Main Database
 
 ```
 entity_forge
   └── tenants
 ```
 
-## Tenant DBs
+## Tenant Databases
 
 ```
 entity_forge_tenant_1
@@ -197,18 +282,20 @@ entity_forge_tenant_2
 
 # ⚠️ Important Rules
 
-* Always boot application before using repositories
-* Never reuse repository across tenant switches
-* Keep tenant registry in main DB
-* Keep user data in tenant DBs
+* Always call `boot()` before using repositories
+* Never reuse repository instances across tenant switches
+* Keep tenant registry in the main database
+* Keep application data in tenant databases
 
 ---
 
-# 🧪 Example Commands
+# 🧪 CLI Commands
 
 ```bash
 php bin/ef generate User
+php bin/ef generate:all
 php bin/ef migrate
+php bin/ef migrate:rollback
 php bin/ef tenant:create tenant_1
 ```
 
@@ -216,15 +303,16 @@ php bin/ef tenant:create tenant_1
 
 # 🚧 Roadmap
 
-* [ ] Middleware (auto tenant resolution)
-* [ ] Dependency injection container
+* [ ] Middleware for automatic tenant resolution
+* [ ] Dependency Injection container
 * [ ] API layer
 
 ---
 
 # 🤝 Contributing
 
-Contributions are welcome. Feel free to open issues or PRs.
+Contributions are welcome.
+Feel free to open issues or pull requests.
 
 ---
 
