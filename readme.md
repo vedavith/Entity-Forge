@@ -1,30 +1,233 @@
-# Entity-Forge
+# 🚀 EntityForge
 
-Entity-Forge is a configuration-driven PHP framework for generating entity models and building multi-tenant SaaS applications.
+**EntityForge** is an Open source configuration-driven, multi-tenant SaaS framework built in PHP.
 
-## Core Philosophy
+It enables you to:
 
-- Configuration over code
-- Multi-tenancy by design, not by implementation
-- Safe defaults (no accidental data leaks)
-- Framework-agnostic
+* Generate applications using JSON configs
+* Run multi-tenant systems (shared DB or DB-per-tenant)
+* Automatically provision tenant infrastructure
+* Manage schema with migrations and rollback
 
-## What It Does
+---
 
-- Generates entity models from configuration
-- Provides tenant-aware repositories
-- Enforces data isolation automatically
+# ✨ Features
 
-## What It Does NOT Do
+## 🧩 Configuration-Driven Development
 
-- No UI
-- No authentication system
-- No framework lock-in (Laravel, Symfony, etc.)
+Define your application using simple JSON:
 
+```json
+{
+  "entity": "User",
+  "multiTenant": true,
+  "timestamps": true,
+  "fields": {
+    "name": "string",
+    "email": "string"
+  }
+}
+```
 
-## Example Flow (Future)
+---
 
-1. Define entity in JSON
-2. Configure tenancy in YAML
-3. Run generator
-4. Use repository without worrying about tenant logic
+## 🏢 Multi-Tenant Architecture
+
+Supports two strategies:
+
+### 🔹 Shared Database
+
+* Single DB
+* Uses `tenant_id` column
+
+### 🔹 Database per Tenant
+
+* Full isolation
+* Separate DB per tenant
+
+---
+
+## ⚙️ Code Generation
+
+Generate:
+
+* Entities
+* Repositories
+* Migrations
+
+```bash
+php bin/ef generate User
+php bin/ef generate:all
+```
+
+---
+
+## 🗄️ Migration System
+
+* Forward migrations
+* Rollback support
+* Batch tracking
+
+```bash
+php bin/ef migrate
+php bin/ef migrate:rollback
+```
+
+---
+
+## 🏗️ Tenant Provisioning
+
+Automatically create:
+
+* Tenant database
+* Schema (via migrations)
+
+```bash
+php bin/ef tenant:create tenant_1
+```
+
+---
+
+## 🧠 Tenant Registry
+
+Central table (`tenants`) tracks:
+
+* tenant_id
+* name
+* status
+
+---
+
+# 📦 Installation
+
+Once merged, this will be part of entity forge package and will be available on PHP Packagist.
+
+```bash
+composer require vedavith/entity-forge
+```
+
+---
+
+# ⚡ Quick Start
+
+## 1. Configure
+
+```yaml
+tenancy:
+  enabled: true
+  strategy: database
+```
+
+---
+
+## 2. Generate entities
+
+```bash
+php bin/ef generate User --migration
+php bin/ef migrate
+```
+
+---
+
+## 3. Create a tenant
+
+```bash
+php bin/ef tenant:create tenant_1
+```
+
+---
+
+## 4. Use in code
+
+```php
+$app->boot([
+    'headers' => ['X-Tenant-ID' => 'tenant_1']
+], true);
+
+$repo = new UserRepository($app->getConfig());
+
+$repo->create([
+    'name' => 'Ved',
+    'email' => 'ved@example.com'
+]);
+
+print_r($repo->findAll());
+```
+
+---
+
+# 🧱 Architecture Overview
+
+```text
+Application
+ ├── Core (boot, config, schema)
+ ├── Tenant (context, resolver, provisioning)
+ ├── Database (connection, migrations)
+ ├── Generator (entity, repository, migration)
+ └── Repository (data access layer)
+```
+
+---
+
+# 🔄 Tenant Lifecycle
+
+```text
+Onboard → Create DB → Run Migrations → Register Tenant
+```
+
+---
+
+# 🗄️ Database Structure
+
+## Main DB
+
+```
+entity_forge
+  └── tenants
+```
+
+## Tenant DBs
+
+```
+entity_forge_tenant_1
+entity_forge_tenant_2
+```
+
+---
+
+# ⚠️ Important Rules
+
+* Always boot application before using repositories
+* Never reuse repository across tenant switches
+* Keep tenant registry in main DB
+* Keep user data in tenant DBs
+
+---
+
+# 🧪 Example Commands
+
+```bash
+php bin/ef generate User
+php bin/ef migrate
+php bin/ef tenant:create tenant_1
+```
+
+---
+
+# 🚧 Roadmap
+
+* [ ] Middleware (auto tenant resolution)
+* [ ] Dependency injection container
+* [ ] API layer
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome. Feel free to open issues or PRs.
+
+---
+
+# 📄 License
+
+MIT License
