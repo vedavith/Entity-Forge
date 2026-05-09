@@ -1,6 +1,7 @@
 <?php
 
 namespace EntityForge\Core;
+
 use EntityForge\Config\ConfigLoader;
 use EntityForge\Config\ConfigValidator;
 use EntityForge\Core\CoreSchemaManager;
@@ -33,6 +34,13 @@ class Application
 
         $validator->validate($this->config);
 
+        // Check Strategy
+        $strategy = $this->config['tenancy']['strategy'] ?? 'shared';
+
+        if ($strategy === 'database') {
+            (new CoreSchemaManager($this->config))->ensure();
+        }
+
         // 🔒 Tenant resolution is explicit
         if ($resolveTenant && ($this->config['tenancy']['enabled'] ?? false)) {
             $this->resolveTenant($context);
@@ -45,10 +53,11 @@ class Application
     private function resolveTenant(array $context): void
     {
         if (empty($context)) {
-            throw new \Exception("Tenant resolution requires context.");
+            throw new Exception("Tenant resolution requires context.");
         }
 
         $resolver = TenantResolverFactory::create($this->config);
+
         $tenantId = $resolver->resolve($context);
 
         TenantContext::setTenantId($tenantId);
