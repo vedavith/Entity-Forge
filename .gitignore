@@ -6,3 +6,9 @@
 .DS_Store
 composer.lock
 /vendor
+/coverage
+CLAUDE.md
+/.claude
+/app
+/database
+.phpunit.result.cache
