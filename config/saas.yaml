@@ -1,0 +1,4 @@
+tenancy:
+  enabled: true
+  strategy: shared_table
+  tenant_id_column: tenant_id

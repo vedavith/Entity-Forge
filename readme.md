@@ -1,104 +1,321 @@
-# Entity-Forge
+# 🚀 EntityForge
 
-A simple PHP Entity ORM for generating and managing entity models.
+**EntityForge** is a WIP open source configuration-driven, multi-tenant SaaS framework built in PHP.
 
-## Installation
+It enables developers to build scalable SaaS applications with:
 
-Install via Composer:
+* JSON-based code generation
+* Multi-tenant architecture (shared or database-per-tenant)
+* Automated migrations and rollback
+* Tenant provisioning and lifecycle management
 
-```bash
-composer require entity-forge/entity-forge
-```
+---
 
-## Features
+# ✨ Features
 
-- Generating MySQL tables and related POCO classes from JSON objects.
+## 🧩 Configuration-Driven Development
 
-## Folder Structure
-
-- `src/Core/` - Core classes like ModelGenerator
-- `src/EntityConnector/` - Database connection classes
-- `src/EntityGenerator/` - Model generation logic
-- `src/EntityModels/` - Generated model classes
-# EntityForge
-
-EntityForge is a lightweight PHP utility to generate PHP model classes and repository scaffolding from JSON model definitions. It focuses on developer productivity: define your data model as JSON, then generate POPO model classes and thin repositories that delegate data access to a central `EntityDriver`.
-
-Version: 1.0
-
-## Goals
-
-- Provide a simple, composable generator to convert JSON model descriptions into PHP model classes and repositories.
-- Keep runtime footprint minimal — generated model classes are plain PHP objects; repositories are thin adapters.
-- Make the code generation pipeline extensible (custom templates or additional generators).
-
-## Quick Install
-
-Install via Composer (local development):
-
-```bash
-composer install --dev
-```
-
-## Project Layout
-
-- `src/Core/` — Generators: `ModelGenerator`, `RepositoryGenerator`.
-- `src/EntityGenerator/` — Orchestration code that reads JSON models and invokes generators.
-- `src/EntityModels/` — Generated model classes (POPOs).
-- `src/EntityRepository/` — Generated repository classes (thin wrappers using `EntityDriver`).
-- `src/JsonModels/` — JSON model definitions included with the package (used by the generator).
-- `tests/` — PHPUnit tests that validate generation behavior.
-
-## JSON Model Format
-
-Each model is a JSON file with a top-level `model` (class name) and `fields` object. Example `src/JsonModels/users.model.json`:
+Define your application using JSON:
 
 ```json
 {
-  "model": "User",
+  "entity": "User",
+  "multiTenant": true,
+  "timestamps": true,
   "fields": {
-    "id": { "type": "int", "primary": true },
-    "username": { "type": "string", "maxLength": 100 },
-    "email": { "type": "string", "maxLength": 255 }
+    "name": "string",
+    "email": "string"
   }
 }
 ```
 
-The generator creates a PHP class `User` in `src/EntityModels/User.php` and a repository `UserRepository` in `src/EntityRepository/UserRepository.php`.
+---
 
-## CLI: Generate Models & Repositories
+## 🏢 Multi-Tenant Architecture
 
-Use the bundled CLI to generate model and repository files from JSON models included in `src/JsonModels`:
+Supports two strategies:
+
+* **Shared Database**
+* **Database per Tenant**
+
+---
+
+## ⚙️ Code Generation
+
+Generate:
+
+* Entities
+* Repositories
+* Migrations
 
 ```bash
-php src/EntityGenerator/Entity:Gen create-model --model=users
+php bin/ef generate User
+php bin/ef generate:all
 ```
 
-- `--model` refers to the base filename in `src/JsonModels` (without `.model.json`).
-- The command writes the generated model file to `src/EntityModels/` and repository to `src/EntityRepository/`.
+---
 
-## Running Tests
+## 🗄️ Migration System
 
-Install dev dependencies and run PHPUnit:
+* Forward migrations
+* Rollback support
+* Batch tracking
 
 ```bash
-composer install --dev
-vendor/bin/phpunit --testdox
+php bin/ef migrate
+php bin/ef migrate:rollback
 ```
 
-Note: PHPUnit requires the PHP `dom` extension. On Debian/Ubuntu install via `sudo apt install php-xml`.
+---
 
-## Future Work (planned for next releases)
+## 🏗️ Tenant Provisioning
 
-- Read and write tables from the JSON model definitions directly (persist schema/state as JSON) instead of auto-creating SQL tables.
-- Add configurable templates for code generation (allow custom class templates).
-- Dependency injection for repositories and integration tests with an in-memory database.
+Automatically creates:
 
-## Contribution
+* Tenant database
+* Schema (via migrations)
 
-Contributions welcome. Fork the repo, create a feature branch, and open a PR describing the change.
+```bash
+php bin/ef tenant:create tenant_1
+```
 
-## License
+---
 
-MIT
+## 🧠 Tenant Registry
 
+Central `tenants` table stores:
+
+* tenant_id
+* name
+* status
+
+---
+
+# 📦 Installation
+
+This will be part of PHP Packagist and will replace the entity-forge ORM.
+
+```bash
+composer require vedavith/entity-forge
+```
+
+---
+
+# ⚡ Quick Start
+
+## 1. Configure tenancy
+
+### 🟢 Shared Database
+
+```yaml
+tenancy:
+  enabled: true
+  strategy: shared
+
+database:
+  driver: mysql
+  host: 127.0.0.1
+  port: 3306
+  database: entity_forge
+  username: root
+  password: root
+```
+
+---
+
+### 🔵 Database per Tenant
+
+```yaml
+tenancy:
+  enabled: true
+  strategy: database
+
+database:
+  driver: mysql
+  host: 127.0.0.1
+  port: 3306
+  database: entity_forge
+  username: root
+  password: root
+```
+
+---
+
+## 2. Generate entities
+
+```bash
+php bin/ef generate User --migration
+php bin/ef migrate
+```
+
+---
+
+## 3. Create a tenant
+
+```bash
+php bin/ef tenant:create tenant_1
+```
+
+---
+
+## 4. Use in application
+
+```php
+$app->boot([
+    'headers' => ['X-Tenant-ID' => 'tenant_1']
+], true);
+
+$repo = new UserRepository($app->getConfig());
+
+$repo->create([
+    'name' => 'Ved',
+    'email' => 'ved@example.com'
+]);
+
+print_r($repo->findAll());
+```
+
+---
+
+# ⚙️ Configuration Details
+
+## 🟢 Shared Database Strategy
+
+All tenants share a single database.
+
+### Structure
+
+```
+entity_forge
+  └── users
+        id
+        name
+        tenant_id
+```
+
+### Characteristics
+
+* Uses `tenant_id` for isolation
+* Lower infrastructure cost
+* Easier to manage
+
+---
+
+## 🔵 Database per Tenant Strategy
+
+Each tenant gets a dedicated database.
+
+### Structure
+
+```
+entity_forge                (main DB)
+  └── tenants
+
+entity_forge_tenant_1
+  └── users
+
+entity_forge_tenant_2
+  └── users
+```
+
+### Characteristics
+
+* Full data isolation
+* No `tenant_id` column required
+* Better for enterprise use cases
+
+---
+
+## Tenant Database Naming
+
+```
+{base_database}_{tenant_id}
+```
+
+Example:
+
+```
+entity_forge_tenant_1
+entity_forge_tenant_2
+```
+
+---
+
+# 🧱 Architecture Overview
+
+```
+Application
+ ├── Core (boot, config, schema)
+ ├── Tenant (context, resolver, provisioning)
+ ├── Database (connection, migrations)
+ ├── Generator (entity, repository, migration)
+ └── Repository (data access layer)
+```
+
+---
+
+# 🔄 Tenant Lifecycle
+
+```
+Onboard → Create DB → Run Migrations → Register Tenant
+```
+
+---
+
+# 🗄️ Database Design
+
+## Main Database
+
+```
+entity_forge
+  └── tenants
+```
+
+## Tenant Databases
+
+```
+entity_forge_tenant_1
+entity_forge_tenant_2
+```
+
+---
+
+# ⚠️ Important Rules
+
+* Always call `boot()` before using repositories
+* Never reuse repository instances across tenant switches
+* Keep tenant registry in the main database
+* Keep application data in tenant databases
+
+---
+
+# 🧪 CLI Commands
+
+```bash
+php bin/ef generate User
+php bin/ef generate:all
+php bin/ef migrate
+php bin/ef migrate:rollback
+php bin/ef tenant:create tenant_1
+```
+
+---
+
+# 🚧 Roadmap
+
+* [ ] Middleware for automatic tenant resolution
+* [ ] Dependency Injection container
+* [ ] API layer
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome.
+Feel free to open issues or pull requests.
+
+---
+
+# 📄 License
+
+MIT License

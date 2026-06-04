@@ -1,0 +1,16 @@
+application:
+  name: entity-forge-app
+
+tenancy:
+  enabled: true
+  resolver: header
+  header_key: X-Tenant-ID
+  strategy: database # shared | database
+
+database:
+  driver: mysql
+  host: localhost
+  port: 3306
+  username: root
+  password: root
+  database: entity_forge
