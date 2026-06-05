@@ -9,7 +9,9 @@ use EntityForge\Tenant\TenantRepository;
 use Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Process\Process;
 
 class MigrateAllTenantsCommand extends Command
 {
@@ -17,7 +19,10 @@ class MigrateAllTenantsCommand extends Command
     {
         $this
             ->setName('migrate:all-tenants')
-            ->setDescription('Run migrations against every registered tenant database (database strategy only)');
+            ->setDescription('Run migrations against every active tenant database (database strategy only)')
+            ->addOption('dry-run',  null, InputOption::VALUE_NONE,     'Show pending migrations per tenant without executing them')
+            ->addOption('parallel', null, InputOption::VALUE_OPTIONAL,  'Number of concurrent workers',  5)
+            ->addOption('tenant',   null, InputOption::VALUE_REQUIRED,  'Migrate a single tenant (used internally by parallel workers)');
     }
 
     /**
@@ -34,32 +39,83 @@ class MigrateAllTenantsCommand extends Command
             return Command::SUCCESS;
         }
 
+        $dryRun = (bool) $input->getOption('dry-run');
+
+        // Subprocess mode — migrate one tenant and exit
+        if ($tenantId = $input->getOption('tenant')) {
+            return $this->migrateTenant($tenantId, $config, $dryRun, $output);
+        }
+
+        // Orchestrator mode — spawn parallel subprocesses
         $tenantRepo = new TenantRepository($config);
-        $tenants = $tenantRepo->all();
+        $tenants    = $tenantRepo->allActive();
 
         if (empty($tenants)) {
             $output->writeln('<comment>No tenants found.</comment>');
             return Command::SUCCESS;
         }
 
-        $failed = 0;
+        $parallel = max(1, (int) $input->getOption('parallel'));
+        $bin      = PHP_BINARY;
+        $script   = __DIR__ . '/../../bin/ef';
 
-        foreach ($tenants as $tenant) {
-            $tenantId = $tenant['tenant_id'];
-            $dbConfig = $config['database'];
-            $dbConfig['database'] = $dbConfig['database'] . '_' . $tenantId;
+        $queue    = array_column($tenants, 'tenant_id');
+        $running  = [];
+        $failed   = 0;
 
-            try {
-                $connection = new Connection($dbConfig);
-                $runner = new MigrationRunner($connection);
-                $runner->run('database/migrations');
-                $output->writeln("<info>Migrated: {$tenantId}</info>");
-            } catch (\Throwable $e) {
-                $output->writeln("<error>Failed {$tenantId}: {$e->getMessage()}</error>");
-                $failed++;
+        while ($queue || $running) {
+            // Fill pool up to $parallel
+            while (count($running) < $parallel && $queue) {
+                $id   = array_shift($queue);
+                $args = [$bin, $script, 'migrate:all-tenants', '--tenant', $id];
+                if ($dryRun) {
+                    $args[] = '--dry-run';
+                }
+                $process = new Process($args);
+                $process->start();
+                $running[$id] = $process;
+            }
+
+            // Poll for finished processes
+            foreach ($running as $id => $process) {
+                if (!$process->isRunning()) {
+                    $output->write($process->getOutput());
+                    if (!$process->isSuccessful()) {
+                        $output->writeln("<error>Failed {$id}: {$process->getErrorOutput()}</error>");
+                        $failed++;
+                    }
+                    unset($running[$id]);
+                }
+            }
+
+            if ($running) {
+                usleep(50_000); // 50ms poll interval
             }
         }
 
         return $failed > 0 ? Command::FAILURE : Command::SUCCESS;
+    }
+
+    private function migrateTenant(
+        string $tenantId,
+        array $config,
+        bool $dryRun,
+        OutputInterface $output
+    ): int {
+        $dbConfig             = $config['database'];
+        $dbConfig['database'] = $dbConfig['database'] . '_' . $tenantId;
+
+        try {
+            $runner = new MigrationRunner(new Connection($dbConfig));
+            $runner->run('database/migrations', $dryRun);
+            $output->writeln($dryRun
+                ? "<comment>Dry run: {$tenantId}</comment>"
+                : "<info>Migrated: {$tenantId}</info>"
+            );
+            return Command::SUCCESS;
+        } catch (\Throwable $e) {
+            $output->writeln("<error>Failed {$tenantId}: {$e->getMessage()}</error>");
+            return Command::FAILURE;
+        }
     }
 }

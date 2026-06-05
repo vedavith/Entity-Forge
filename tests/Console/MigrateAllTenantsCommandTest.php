@@ -17,4 +17,23 @@ class MigrateAllTenantsCommandTest extends TestCase
     {
         $this->assertStringContainsString('tenant', (new MigrateAllTenantsCommand())->getDescription());
     }
+
+    public function test_command_has_parallel_option(): void
+    {
+        $def = (new MigrateAllTenantsCommand())->getDefinition();
+        $this->assertTrue($def->hasOption('parallel'));
+        $this->assertSame(5, $def->getOption('parallel')->getDefault());
+    }
+
+    public function test_command_has_tenant_option(): void
+    {
+        $def = (new MigrateAllTenantsCommand())->getDefinition();
+        $this->assertTrue($def->hasOption('tenant'));
+    }
+
+    public function test_command_has_dry_run_option(): void
+    {
+        $def = (new MigrateAllTenantsCommand())->getDefinition();
+        $this->assertTrue($def->hasOption('dry-run'));
+    }
 }
