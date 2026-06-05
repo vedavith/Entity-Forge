@@ -55,6 +55,15 @@ class Response
         echo $this->body;
     }
 
+    public function stream(callable $body): void
+    {
+        http_response_code($this->status);
+        foreach ($this->headers as $name => $value) {
+            header("{$name}: {$value}");
+        }
+        $body();
+    }
+
     public function json(array $data, int $status = 200): void
     {
         http_response_code($status);

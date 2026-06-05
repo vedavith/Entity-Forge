@@ -50,4 +50,38 @@ class ResponseValueObjectTest extends TestCase
         $this->assertNotSame($original, $modified);
         $this->assertArrayNotHasKey('X-Foo', $original->getHeaders());
     }
+
+    public function test_stream_invokes_callable_and_produces_output(): void
+    {
+        $response = (new Response())->withHeader('Content-Type', 'text/plain');
+
+        ob_start();
+        $response->stream(function (): void {
+            echo 'chunk1';
+            echo 'chunk2';
+        });
+        $output = ob_get_clean();
+
+        $this->assertSame('chunk1chunk2', $output);
+    }
+
+    public function test_stream_callable_is_called_exactly_once(): void
+    {
+        $calls = 0;
+        (new Response())->stream(function () use (&$calls): void {
+            $calls++;
+        });
+
+        $this->assertSame(1, $calls);
+    }
+
+    public function test_stream_uses_response_status_and_headers(): void
+    {
+        $response = (new Response())
+            ->withStatus(206)
+            ->withHeader('Content-Range', 'bytes 0-999/5000');
+
+        $this->assertSame(206, $response->getStatus());
+        $this->assertSame('bytes 0-999/5000', $response->getHeaders()['Content-Range']);
+    }
 }
