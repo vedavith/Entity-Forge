@@ -84,4 +84,73 @@ class MigrationBuilderTest extends TestCase
 
         $this->assertStringContainsString('invoices', $sql);
     }
+
+    public function test_build_up_emits_foreign_key_for_belongs_to(): void
+    {
+        $schema = new EntitySchema([
+            'entity'    => 'Order',
+            'fields'    => ['id' => 'int', 'user_id' => 'int'],
+            'relations' => ['belongsTo' => ['User' => 'user_id']],
+        ]);
+
+        $sql = $this->builder->buildUp($schema);
+
+        $this->assertStringContainsString('CONSTRAINT fk_orders_user_id', $sql);
+        $this->assertStringContainsString('FOREIGN KEY (user_id) REFERENCES users(id)', $sql);
+    }
+
+    public function test_build_up_emits_index(): void
+    {
+        $schema = new EntitySchema([
+            'entity'  => 'Order',
+            'fields'  => ['id' => 'int', 'status' => 'string'],
+            'indexes' => [['columns' => ['status']]],
+        ]);
+
+        $sql = $this->builder->buildUp($schema);
+
+        $this->assertStringContainsString('INDEX idx_orders_status (status)', $sql);
+    }
+
+    public function test_build_up_emits_unique_index(): void
+    {
+        $schema = new EntitySchema([
+            'entity'  => 'User',
+            'fields'  => ['id' => 'int', 'email' => 'string'],
+            'indexes' => [['columns' => ['email'], 'unique' => true]],
+        ]);
+
+        $sql = $this->builder->buildUp($schema);
+
+        $this->assertStringContainsString('UNIQUE INDEX uix_users_email (email)', $sql);
+    }
+
+    public function test_build_up_emits_composite_index(): void
+    {
+        $schema = new EntitySchema([
+            'entity'  => 'Order',
+            'fields'  => ['id' => 'int', 'user_id' => 'int', 'status' => 'string'],
+            'indexes' => [['columns' => ['user_id', 'status']]],
+        ]);
+
+        $sql = $this->builder->buildUp($schema);
+
+        $this->assertStringContainsString('INDEX idx_orders_user_id_status (user_id, status)', $sql);
+    }
+
+    public function test_build_up_emits_multiple_fks_and_indexes(): void
+    {
+        $schema = new EntitySchema([
+            'entity'    => 'OrderItem',
+            'fields'    => ['id' => 'int', 'order_id' => 'int', 'product_id' => 'int'],
+            'relations' => ['belongsTo' => ['Order' => 'order_id', 'Product' => 'product_id']],
+            'indexes'   => [['columns' => ['order_id', 'product_id'], 'unique' => true]],
+        ]);
+
+        $sql = $this->builder->buildUp($schema);
+
+        $this->assertStringContainsString('FOREIGN KEY (order_id) REFERENCES orders(id)', $sql);
+        $this->assertStringContainsString('FOREIGN KEY (product_id) REFERENCES products(id)', $sql);
+        $this->assertStringContainsString('UNIQUE INDEX uix_orderitems_order_id_product_id', $sql);
+    }
 }

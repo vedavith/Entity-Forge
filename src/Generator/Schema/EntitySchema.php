@@ -47,4 +47,9 @@ class EntitySchema
     {
         return $this->config['relations'] ?? [];
     }
+
+    public function getIndexes(): array
+    {
+        return $this->config['indexes'] ?? [];
+    }
 }
