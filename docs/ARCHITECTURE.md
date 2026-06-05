@@ -30,6 +30,7 @@ src/
 │
 ├── Core/
 │   ├── Application.php           — boot entry point
+│   ├── Container.php             — DI container with auto-wiring
 │   └── CoreSchemaManager.php     — creates tenants table on every boot
 │
 ├── Database/
@@ -84,9 +85,12 @@ Application::boot($context, $resolveTenant)
   ├── CoreSchemaManager::ensure()
   │     CREATE TABLE IF NOT EXISTS tenants (always, both strategies)
   │
+  ├── Container::registerBindings()
+  │     singletons: TenantRepository, TenantProvisioner, TenantService
+  │
   └── if $resolveTenant && tenancy.enabled:
         TenantResolverFactory::create() → resolver.resolve($context)
-        TenantContext::setTenantId()
+        TenantContext::setTenantId()   ← throws LogicException if already set
         if strategy === database:
           TenantRepository::findByTenantId() — throws if not found or suspended
 ```
@@ -129,6 +133,7 @@ entity_forge_corp       ← tenant DB: all application data
 
 ```
 TenantService::onboard($tenantId, $name)
+  ├── validate $tenantId matches ^[a-zA-Z0-9_-]+$ — throws if invalid
   ├── TenantRepository::exists() — throws if already registered
   ├── TenantProvisioner::create()
   │     ├── CREATE DATABASE IF NOT EXISTS {base}_{tenantId}
@@ -169,16 +174,32 @@ $request = new Request(headers: [...], query: [...], body: [...], method: 'POST'
 $request = Request::capture();   // reads $_SERVER, $_GET, $_POST, getallheaders()
 ```
 
-### Response
-
-Dual-mode: immutable builder for pipeline use, plus legacy `json()` for direct output.
+Route parameters extracted by the router are available via:
 
 ```php
-// Pipeline / Router path — immutable, chainable
+$request->param('id');    // single named parameter
+$request->params();       // all parameters as array
+```
+
+### Response
+
+Three output modes: immutable builder, streaming, and legacy direct-echo.
+
+```php
+// Immutable builder — pipeline / router path
 $response = (new Response())
     ->withJson(['id' => 1], 201)
     ->withHeader('X-Request-Id', $id);
-$response->send();   // http_response_code + headers + echo
+$response->send();   // http_response_code + headers + echo body
+
+// Streaming — caller echoes chunks, controls flush timing
+(new Response())
+    ->withStatus(200)
+    ->withHeader('Content-Type', 'text/csv')
+    ->stream(function (): void {
+        echo "id,name\n";
+        flush();
+    });
 
 // Legacy direct-output (kept for backwards compatibility)
 (new Response())->json(['ok' => true], 200);
@@ -200,15 +221,19 @@ Middleware is executed outermost-first. `$next` is a `callable(Request): Respons
 
 ### Router
 
+Backed by `nikic/fast-route`. Supports exact paths and `{name}` parameter segments.
+
 ```php
 $router = new Router();
-$router->get('/users',    fn(Request $req): Response => ...);
-$router->post('/users',   fn(Request $req): Response => ...);
-$router->put('/users/1',  fn(Request $req): Response => ...);
-$router->delete('/users/1', fn(Request $req): Response => ...);
+$router->get('/users',        fn(Request $req): Response => ...);
+$router->post('/users',       fn(Request $req): Response => ...);
+$router->get('/users/{id}',   fn(Request $req): Response => ...);  // $req->param('id')
+$router->delete('/users/{id}', fn(Request $req): Response => ...);
 
-$response = $router->dispatch($request);  // 404 if no match
+$response = $router->dispatch($request);  // 404 not found, 405 method not allowed
 ```
+
+Routes are matched in registration order — register exact paths before parameterised ones.
 
 ---
 
@@ -231,6 +256,8 @@ public function rollback(): void
 
 `resolveTableName()` derives the table name from the class name (`UserRepository` → `users`). Override `$this->table` in the subclass constructor to use a custom name.
 
+Column names passed to `create()`, `where()`, and `update()` are validated against `^[a-zA-Z0-9_]+$` before SQL interpolation. `InvalidArgumentException` is thrown on violation.
+
 ---
 
 ## Migration System
@@ -251,9 +278,11 @@ When a new migration is added, existing tenant databases do not automatically re
 
 ```bash
 php bin/ef migrate:all-tenants
+php bin/ef migrate:all-tenants --parallel 5   # run 5 concurrent workers
+php bin/ef migrate:all-tenants --dry-run       # preview without applying
 ```
 
-This iterates `TenantRepository::all()`, connects to each tenant DB, and runs `MigrationRunner::run()` against it. Failures per-tenant are reported but do not stop other tenants from being migrated.
+Only active tenants (`status = 'active'`) are included. Suspended tenants are skipped. Workers are spawned via `symfony/process` — cross-platform on Linux, macOS, and Windows. Failures per-tenant are reported but do not stop other tenants from being migrated.
 
 ---
 
@@ -264,9 +293,16 @@ Entity JSON schemas live in `config/entities/*.json`. A schema drives three buil
 ```json
 {
   "entity": "Order",
-  "fields": { "id": "int", "amount": "float", "status": "string" }
+  "fields": { "id": "int", "amount": "float", "status": "string" },
+  "relations": { "belongsTo": { "User": "user_id" } },
+  "indexes": [
+    { "columns": ["status"] },
+    { "columns": ["user_id", "status"], "unique": true }
+  ]
 }
 ```
+
+`relations.belongsTo` emits `CONSTRAINT fk_… FOREIGN KEY` clauses. `indexes` emits `INDEX` or `UNIQUE INDEX` clauses. Both sections are optional.
 
 Output:
 - `app/Entity/Order.php`
@@ -279,20 +315,22 @@ Output:
 
 ## CLI Commands
 
-| Command                  | Description                                          |
-|--------------------------|------------------------------------------------------|
-| `generate <Entity>`      | Generate entity + repository from JSON schema        |
-| `generate:all`           | Generate all schemas in `config/entities/` (or `--config-dir`) |
-| `migrate`                | Run pending migrations on the main database          |
-| `migrate:rollback`       | Roll back the last migration batch                   |
-| `migrate:all-tenants`    | Run pending migrations on every registered tenant DB |
-| `tenant:create <id>`     | Onboard a new tenant (`--name` for display name)     |
+| Command                  | Key options                        | Description                                          |
+|--------------------------|------------------------------------|------------------------------------------------------|
+| `generate <Entity>`      |                                    | Generate entity + repository from JSON schema        |
+| `generate:all`           | `--config-dir`                     | Generate all schemas in `config/entities/`           |
+| `migrate`                | `--dry-run`                        | Run pending migrations on the main database          |
+| `migrate:rollback`       | `--dry-run`                        | Roll back the last migration batch                   |
+| `migrate:all-tenants`    | `--dry-run`, `--parallel N`        | Run pending migrations on every active tenant DB     |
+| `tenant:create <id>`     | `--name`                           | Onboard a new tenant                                 |
 
 ---
 
 ## Concurrency (Worker-Mode PHP)
 
 `TenantContext` is a static singleton. In PHP-FPM each process handles one request so static state is reset automatically. In long-lived workers (Swoole, RoadRunner, Laravel Octane), static state persists between requests.
+
+`TenantContext::setTenantId()` throws `LogicException` if a tenant is already set. This turns a forgotten `RequestLifecycle::begin()` call into an immediate hard error rather than a silent wrong-tenant data leak.
 
 Wrap each request loop iteration:
 
