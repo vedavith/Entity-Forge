@@ -78,6 +78,30 @@ class TenantRepositoryTest extends TestCase
 
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
+    public function test_all_active_returns_only_active_tenants(): void
+    {
+        $rows = [['id' => 1, 'tenant_id' => 'acme', 'name' => 'Acme', 'status' => 'active']];
+
+        $stmt = Mockery::mock(PDOStatement::class);
+        $stmt->allows('execute')->with(['status' => 'active'])->andReturn(true);
+        $stmt->allows('fetchAll')->with(PDO::FETCH_ASSOC)->andReturn($rows);
+
+        $pdo = Mockery::mock(PDO::class);
+        $pdo->allows('prepare')
+            ->with('SELECT * FROM tenants WHERE status = :status')
+            ->andReturn($stmt);
+
+        /** @var MockInterface&Connection $conn */
+        $conn = Mockery::mock('overload:' . Connection::class);
+        $conn->allows('getPdo')->andReturn($pdo);
+
+        $repo = new TenantRepository($this->dbConfig());
+
+        $this->assertSame($rows, $repo->allActive());
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_exists_returns_true_when_found(): void
     {
         $stmt = Mockery::mock(PDOStatement::class);

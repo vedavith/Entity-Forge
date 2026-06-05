@@ -35,6 +35,15 @@ class TenantRepository
             ->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    public function allActive(): array
+    {
+        $stmt = $this->connection->getPdo()->prepare(
+            "SELECT * FROM tenants WHERE status = :status"
+        );
+        $stmt->execute(['status' => 'active']);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     public function exists(string $tenantId): bool
     {
         $stmt = $this->connection->getPdo()->prepare(
