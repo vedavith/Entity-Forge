@@ -234,6 +234,30 @@ class BaseRepositoryTest extends TestCase
         $this->assertSame([], $results);
     }
 
+    public function test_create_throws_on_invalid_column_name(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/Invalid column name/');
+
+        $this->repo('database')->create(['name; DROP TABLE widgets--' => 'bad']);
+    }
+
+    public function test_where_throws_on_invalid_column_name(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/Invalid column name/');
+
+        $this->repo('database')->where(['col name' => 'value']);
+    }
+
+    public function test_update_throws_on_invalid_column_name(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/Invalid column name/');
+
+        $this->repo('database')->update(1, ['`injected`' => 'value']);
+    }
+
     public function test_transaction_methods_delegate_to_pdo(): void
     {
         $this->pdo->allows('beginTransaction')->once()->andReturn(true);
