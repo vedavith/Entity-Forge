@@ -8,15 +8,22 @@ class TenantService
     private TenantProvisioner $provisioner;
     private array $config;
 
-    public function __construct(array $config)
-    {
-        $this->config = $config;
-        $this->repo = new TenantRepository($config);
-        $this->provisioner = new TenantProvisioner($config);
+    public function __construct(
+        array $config,
+        ?TenantRepository $repo = null,
+        ?TenantProvisioner $provisioner = null
+    ) {
+        $this->config      = $config;
+        $this->repo        = $repo        ?? new TenantRepository($config);
+        $this->provisioner = $provisioner ?? new TenantProvisioner($config);
     }
 
     public function onboard(string $tenantId, string $name): void
     {
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $tenantId)) {
+            throw new \Exception("Invalid tenant ID '{$tenantId}': only letters, numbers, hyphens, and underscores are allowed.");
+        }
+
         if ($this->repo->exists($tenantId)) {
             throw new \Exception("Tenant already exists: {$tenantId}");
         }
