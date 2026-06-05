@@ -4,6 +4,7 @@ namespace EntityForge\Core;
 
 use EntityForge\Config\ConfigLoader;
 use EntityForge\Config\ConfigValidator;
+use EntityForge\Core\Container;
 use EntityForge\Core\CoreSchemaManager;
 use EntityForge\Tenant\TenantContext;
 use EntityForge\Tenant\TenantRepository;
@@ -14,10 +15,12 @@ class Application
 {
     private array $config;
     private string $configPath;
+    private Container $container;
 
     public function __construct(string $configPath)
     {
         $this->configPath = rtrim($configPath, '/');
+        $this->container  = new Container();
     }
 
     /**
@@ -35,6 +38,8 @@ class Application
 
         $validator->validate($this->config);
 
+        $this->registerBindings();
+
         // Always run CoreSchemaManager — idempotently creates the tenants registry
         // in both strategies (shared needs it too for tenant lookups and status checks)
         (new CoreSchemaManager($this->config))->ensure();
@@ -50,6 +55,30 @@ class Application
                 $this->assertTenantActive();
             }
         }
+    }
+
+    private function registerBindings(): void
+    {
+        $config = $this->config;
+
+        $this->container->singleton(
+            \EntityForge\Tenant\TenantRepository::class,
+            fn() => new \EntityForge\Tenant\TenantRepository($config)
+        );
+
+        $this->container->singleton(
+            \EntityForge\Tenant\TenantProvisioner::class,
+            fn() => new \EntityForge\Tenant\TenantProvisioner($config)
+        );
+
+        $this->container->singleton(
+            \EntityForge\Tenant\TenantService::class,
+            fn(Container $c) => new \EntityForge\Tenant\TenantService(
+                $config,
+                $c->make(\EntityForge\Tenant\TenantRepository::class),
+                $c->make(\EntityForge\Tenant\TenantProvisioner::class)
+            )
+        );
     }
 
     /**
@@ -96,5 +125,10 @@ class Application
         }
 
         return $this->config;
+    }
+
+    public function getContainer(): Container
+    {
+        return $this->container;
     }
 }
