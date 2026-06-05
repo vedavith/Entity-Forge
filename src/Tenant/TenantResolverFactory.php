@@ -19,7 +19,8 @@ class TenantResolverFactory
                 $config['tenancy']['header_key'] ?? 'X-Tenant-ID'
             ),
             'subdomain' => new SubdomainTenantResolver(
-                (int) ($config['tenancy']['subdomain_depth'] ?? 0)
+                (int) ($config['tenancy']['subdomain_depth'] ?? 0),
+                (int) ($config['tenancy']['subdomain_min_parts'] ?? 3)
             ),
             default => throw new Exception("Unsupported tenant resolver type: {$resolverType}"),
         };

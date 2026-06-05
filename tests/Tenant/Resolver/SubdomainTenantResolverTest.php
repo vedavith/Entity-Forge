@@ -54,4 +54,42 @@ class SubdomainTenantResolverTest extends TestCase
         ]);
         $this->assertSame('primary', $tenantId);
     }
+
+    public function test_min_parts_2_resolves_two_part_host(): void
+    {
+        $resolver = new SubdomainTenantResolver(subdomainDepth: 0, minParts: 2);
+        $tenantId = $resolver->resolve(['host' => 'acme.io']);
+        $this->assertSame('acme', $tenantId);
+    }
+
+    public function test_min_parts_2_still_throws_for_single_part_host(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessageMatches('/Cannot extract subdomain/');
+
+        (new SubdomainTenantResolver(subdomainDepth: 0, minParts: 2))->resolve(['host' => 'localhost']);
+    }
+
+    public function test_default_min_parts_3_still_rejects_two_part_host(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessageMatches('/Cannot extract subdomain/');
+
+        (new SubdomainTenantResolver())->resolve(['host' => 'acme.io']);
+    }
+
+    public function test_factory_passes_subdomain_min_parts_from_config(): void
+    {
+        $config = [
+            'tenancy' => [
+                'resolver'            => 'subdomain',
+                'subdomain_min_parts' => 2,
+            ],
+        ];
+
+        $resolver = \EntityForge\Tenant\TenantResolverFactory::create($config);
+        $tenantId = $resolver->resolve(['host' => 'acme.io']);
+
+        $this->assertSame('acme', $tenantId);
+    }
 }

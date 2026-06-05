@@ -8,7 +8,8 @@ use Exception;
 class SubdomainTenantResolver implements TenantResolverInterface
 {
     public function __construct(
-        private int $subdomainDepth = 0
+        private int $subdomainDepth = 0,
+        private int $minParts = 3
     ) {}
 
     /**
@@ -29,8 +30,7 @@ class SubdomainTenantResolver implements TenantResolverInterface
 
         $parts = explode('.', $host);
 
-        // Need at least subdomainDepth + 3 parts: subdomain(s) + domain + tld
-        if (count($parts) < $this->subdomainDepth + 3) {
+        if (count($parts) < $this->subdomainDepth + $this->minParts) {
             throw new Exception("Cannot extract subdomain from host: {$host}");
         }
 
