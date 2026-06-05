@@ -14,35 +14,46 @@ class TenantProvisioner
         $dbConfig = $this->config['database'];
         $dbName = $dbConfig['database'] . '_' . $tenantId;
 
-        // 1. Create DB
         $this->createDatabase($dbConfig, $dbName);
 
-        // 2. Run migrations on tenant DB
         $tenantConfig = $dbConfig;
         $tenantConfig['database'] = $dbName;
 
-        $connection = new Connection($tenantConfig);
-        $runner = new MigrationRunner($connection);
-
-        $runner->run('database/migrations');
+        try {
+            $connection = new Connection($tenantConfig);
+            $runner = new MigrationRunner($connection);
+            $runner->run('database/migrations');
+        } catch (\Throwable $e) {
+            $this->dropDatabase($dbConfig, $dbName);
+            throw $e;
+        }
     }
 
-    private function createDatabase(array $config, string $dbName): void
+    public function drop(string $tenantId): void
     {
-        $dsn = sprintf(
-            '%s:host=%s;port=%s',
-            $config['driver'],
-            $config['host'],
-            $config['port']
-        );
+        $dbConfig = $this->config['database'];
+        $dbName = $dbConfig['database'] . '_' . $tenantId;
+        $this->dropDatabase($dbConfig, $dbName);
+    }
 
-        $pdo = new \PDO(
+    private function getRootPdo(array $config): \PDO
+    {
+        $dsn = sprintf('%s:host=%s;port=%s', $config['driver'], $config['host'], $config['port']);
+        return new \PDO(
             $dsn,
             $config['username'],
             $config['password'],
             [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]
         );
+    }
 
-        $pdo->exec("CREATE DATABASE IF NOT EXISTS {$dbName}");
+    private function createDatabase(array $config, string $dbName): void
+    {
+        $this->getRootPdo($config)->exec("CREATE DATABASE IF NOT EXISTS {$dbName}");
+    }
+
+    private function dropDatabase(array $config, string $dbName): void
+    {
+        $this->getRootPdo($config)->exec("DROP DATABASE IF EXISTS {$dbName}");
     }
 }

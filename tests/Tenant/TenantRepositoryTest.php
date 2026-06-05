@@ -117,4 +117,98 @@ class TenantRepositoryTest extends TestCase
 
         $this->assertFalse($repo->exists('unknown'));
     }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_find_by_tenant_id_returns_row_when_found(): void
+    {
+        $row = ['id' => 1, 'tenant_id' => 'acme', 'name' => 'Acme', 'status' => 'active'];
+
+        $stmt = Mockery::mock(PDOStatement::class);
+        $stmt->allows('execute')->with(['id' => 'acme'])->andReturn(true);
+        $stmt->allows('fetch')->with(PDO::FETCH_ASSOC)->andReturn($row);
+
+        $pdo = Mockery::mock(PDO::class);
+        $pdo->allows('prepare')
+            ->with('SELECT * FROM tenants WHERE tenant_id = :id LIMIT 1')
+            ->andReturn($stmt);
+
+        /** @var MockInterface&Connection $conn */
+        $conn = Mockery::mock('overload:' . Connection::class);
+        $conn->allows('getPdo')->andReturn($pdo);
+
+        $repo = new TenantRepository($this->dbConfig());
+
+        $this->assertSame($row, $repo->findByTenantId('acme'));
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_find_by_tenant_id_returns_null_when_not_found(): void
+    {
+        $stmt = Mockery::mock(PDOStatement::class);
+        $stmt->allows('execute')->andReturn(true);
+        $stmt->allows('fetch')->with(PDO::FETCH_ASSOC)->andReturn(false);
+
+        $pdo = Mockery::mock(PDO::class);
+        $pdo->allows('prepare')->andReturn($stmt);
+
+        /** @var MockInterface&Connection $conn */
+        $conn = Mockery::mock('overload:' . Connection::class);
+        $conn->allows('getPdo')->andReturn($pdo);
+
+        $repo = new TenantRepository($this->dbConfig());
+
+        $this->assertNull($repo->findByTenantId('ghost'));
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_update_status_executes_update(): void
+    {
+        $stmt = Mockery::mock(PDOStatement::class);
+        $stmt->allows('execute')
+            ->with(['status' => 'suspended', 'id' => 'acme'])
+            ->once()
+            ->andReturn(true);
+
+        $pdo = Mockery::mock(PDO::class);
+        $pdo->allows('prepare')
+            ->with('UPDATE tenants SET status = :status WHERE tenant_id = :id')
+            ->andReturn($stmt);
+
+        /** @var MockInterface&Connection $conn */
+        $conn = Mockery::mock('overload:' . Connection::class);
+        $conn->allows('getPdo')->andReturn($pdo);
+
+        $repo = new TenantRepository($this->dbConfig());
+        $repo->updateStatus('acme', 'suspended');
+
+        $this->assertTrue(true);
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_delete_by_tenant_id_executes_delete(): void
+    {
+        $stmt = Mockery::mock(PDOStatement::class);
+        $stmt->allows('execute')
+            ->with(['id' => 'acme'])
+            ->once()
+            ->andReturn(true);
+
+        $pdo = Mockery::mock(PDO::class);
+        $pdo->allows('prepare')
+            ->with('DELETE FROM tenants WHERE tenant_id = :id')
+            ->andReturn($stmt);
+
+        /** @var MockInterface&Connection $conn */
+        $conn = Mockery::mock('overload:' . Connection::class);
+        $conn->allows('getPdo')->andReturn($pdo);
+
+        $repo = new TenantRepository($this->dbConfig());
+        $repo->deleteByTenantId('acme');
+
+        $this->assertTrue(true);
+    }
 }

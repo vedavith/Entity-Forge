@@ -3,11 +3,12 @@
 namespace EntityForge\Console;
 
 use EntityForge\Core\Application;
-use EntityForge\Tenant\TenantProvisioner;
+use EntityForge\Tenant\TenantService;
 use Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class TenantCreateCommand extends Command
@@ -16,8 +17,9 @@ class TenantCreateCommand extends Command
     {
         $this
             ->setName('tenant:create')
-            ->setDescription('Create a new tenant')
-            ->addArgument('tenantId', InputArgument::REQUIRED, 'Tenant ID');
+            ->setDescription('Create and register a new tenant')
+            ->addArgument('tenantId', InputArgument::REQUIRED, 'Tenant ID')
+            ->addOption('name', null, InputOption::VALUE_OPTIONAL, 'Display name (defaults to tenantId)');
     }
 
     /**
@@ -26,16 +28,16 @@ class TenantCreateCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $tenantId = $input->getArgument('tenantId');
+        $name = $input->getOption('name') ?? $tenantId;
 
         $app = new Application(__DIR__ . '/../../config');
         $app->boot([], false);
 
-        $provisioner = new TenantProvisioner($app->getConfig());
+        $service = new TenantService($app->getConfig());
 
         try {
-            $provisioner->create($tenantId);
-
-            $output->writeln("<info>Tenant {$tenantId} created successfully</info>");
+            $service->onboard($tenantId, $name);
+            $output->writeln("<info>Tenant '{$tenantId}' created and registered successfully</info>");
         } catch (\Throwable $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
             return Command::FAILURE;
