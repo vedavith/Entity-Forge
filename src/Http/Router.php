@@ -2,45 +2,58 @@
 
 namespace EntityForge\Http;
 
+use FastRoute\Dispatcher;
+use FastRoute\RouteCollector;
+use function FastRoute\simpleDispatcher;
+
 class Router
 {
     private array $routes = [];
 
     public function get(string $path, callable $handler): self
     {
-        $this->routes['GET'][$path] = $handler;
-        return $this;
+        return $this->register('GET', $path, $handler);
     }
 
     public function post(string $path, callable $handler): self
     {
-        $this->routes['POST'][$path] = $handler;
-        return $this;
+        return $this->register('POST', $path, $handler);
     }
 
     public function put(string $path, callable $handler): self
     {
-        $this->routes['PUT'][$path] = $handler;
-        return $this;
+        return $this->register('PUT', $path, $handler);
     }
 
     public function delete(string $path, callable $handler): self
     {
-        $this->routes['DELETE'][$path] = $handler;
+        return $this->register('DELETE', $path, $handler);
+    }
+
+    private function register(string $method, string $path, callable $handler): self
+    {
+        $this->routes[] = [$method, $path, $handler];
         return $this;
     }
 
     public function dispatch(Request $request): Response
     {
-        $method = strtoupper($request->method());
-        $path = $request->path();
+        $routes  = $this->routes;
+        $dispatcher = simpleDispatcher(function (RouteCollector $r) use ($routes): void {
+            foreach ($routes as [$method, $path, $handler]) {
+                $r->addRoute($method, $path, $handler);
+            }
+        });
 
-        $handler = $this->routes[$method][$path] ?? null;
+        $result = $dispatcher->dispatch(
+            strtoupper($request->method()),
+            $request->path()
+        );
 
-        if ($handler === null) {
-            return (new Response())->withJson(['error' => 'Not Found'], 404);
-        }
-
-        return $handler($request);
+        return match ($result[0]) {
+            Dispatcher::FOUND => ($result[1])($request->withParams($result[2])),
+            Dispatcher::METHOD_NOT_ALLOWED => (new Response())->withJson(['error' => 'Method Not Allowed'], 405),
+            default => (new Response())->withJson(['error' => 'Not Found'], 404),
+        };
     }
 }

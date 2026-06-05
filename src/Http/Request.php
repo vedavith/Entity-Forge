@@ -10,7 +10,8 @@ class Request
         private array $query = [],
         private array $body = [],
         private array|string $method = 'GET',
-        private string $path = '/'
+        private string $path = '/',
+        private array $params = []
     ) {}
 
     public static function capture(): self
@@ -50,5 +51,22 @@ class Request
     public function path(): string
     {
         return $this->path;
+    }
+
+    public function param(string $name): ?string
+    {
+        return $this->params[$name] ?? null;
+    }
+
+    public function params(): array
+    {
+        return $this->params;
+    }
+
+    public function withParams(array $params): self
+    {
+        $clone = clone $this;
+        $clone->params = $params;
+        return $clone;
     }
 }
