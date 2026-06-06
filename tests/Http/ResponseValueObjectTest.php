@@ -84,4 +84,13 @@ class ResponseValueObjectTest extends TestCase
         $this->assertSame(206, $response->getStatus());
         $this->assertSame('bytes 0-999/5000', $response->getHeaders()['Content-Range']);
     }
+
+    public function test_legacy_json_outputs_encoded_body(): void
+    {
+        ob_start();
+        (new Response())->json(['ok' => true], 200);
+        $output = ob_get_clean();
+
+        $this->assertSame('{"ok":true}', $output);
+    }
 }
