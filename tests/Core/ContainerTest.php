@@ -5,6 +5,17 @@ namespace Tests\Core;
 use EntityForge\Core\Container;
 use PHPUnit\Framework\TestCase;
 
+class AutowireLeaf {}
+
+class AutowireComposite
+{
+    public AutowireLeaf $leaf;
+    public function __construct(AutowireLeaf $leaf)
+    {
+        $this->leaf = $leaf;
+    }
+}
+
 class ContainerTest extends TestCase
 {
     private Container $container;
@@ -82,6 +93,14 @@ class ContainerTest extends TestCase
         $result = $this->container->make('test');
 
         $this->assertSame($this->container, $result->self);
+    }
+
+    public function test_autowire_resolves_typed_class_dependency(): void
+    {
+        $result = $this->container->make(AutowireComposite::class);
+
+        $this->assertInstanceOf(AutowireComposite::class, $result);
+        $this->assertInstanceOf(AutowireLeaf::class, $result->leaf);
     }
 
     public function test_autowire_throws_when_param_has_no_type_and_no_default(): void

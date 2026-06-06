@@ -71,6 +71,30 @@ class MigrationRunnerTest extends TestCase
         $this->pdo->allows('query')->with('SELECT MAX(batch) FROM migrations')->andReturn($batchStmt);
     }
 
+    public function test_ensures_migrations_table_adds_batch_column_when_missing(): void
+    {
+        $this->pdo->allows('exec')->with(Mockery::pattern('/CREATE TABLE IF NOT EXISTS migrations/'))->once();
+
+        // SHOW COLUMNS returns nothing — 'batch' column absent
+        $colStmt = Mockery::mock(PDOStatement::class);
+        $colStmt->allows('fetch')->andReturn(false);
+        $this->pdo->allows('query')->with("SHOW COLUMNS FROM migrations LIKE 'batch'")->andReturn($colStmt);
+
+        $this->pdo->allows('exec')->with(Mockery::pattern('/ALTER TABLE migrations ADD COLUMN batch/'))->once();
+
+        $execStmt = Mockery::mock(PDOStatement::class);
+        $execStmt->allows('fetchAll')->with(PDO::FETCH_COLUMN)->andReturn([]);
+        $this->pdo->allows('query')->with('SELECT migration FROM migrations')->andReturn($execStmt);
+
+        $batchStmt = Mockery::mock(PDOStatement::class);
+        $batchStmt->allows('fetchColumn')->andReturn(0);
+        $this->pdo->allows('query')->with('SELECT MAX(batch) FROM migrations')->andReturn($batchStmt);
+
+        $this->expectOutputString("No migrations found.\n");
+
+        $this->runner->run($this->tmpDir);
+    }
+
     public function test_run_prints_no_migrations_when_dir_is_empty(): void
     {
         $this->mockMigrationsTable();

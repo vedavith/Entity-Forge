@@ -6,6 +6,7 @@ use EntityForge\Console\MigrateAllTenantsCommand;
 use EntityForge\Core\Application;
 use EntityForge\Database\Connection;
 use EntityForge\Database\MigrationRunner;
+use EntityForge\Tenant\TenantRepository;
 use Mockery;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -100,6 +101,22 @@ class MigrateAllTenantsCommandTest extends TestCase
         $this->assertSame(0, $code);
         $this->assertStringContainsString('database strategy', $tester->getDisplay());
     }
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_orchestrator_returns_success_when_no_tenants_found(): void
+    {
+        $this->mockApp();
+
+        $tenantRepo = Mockery::mock('overload:' . TenantRepository::class);
+        $tenantRepo->allows('allActive')->andReturn([]);
+
+        $tester = new CommandTester(new MigrateAllTenantsCommand());
+        $code   = $tester->execute([]);
+
+        $this->assertSame(0, $code);
+        $this->assertStringContainsString('No tenants found', $tester->getDisplay());
+    }
+
     public function test_command_name(): void
     {
         $this->assertSame('migrate:all-tenants', (new MigrateAllTenantsCommand())->getName());

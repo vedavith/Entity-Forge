@@ -36,7 +36,7 @@ class TenantProvisioner
         $this->dropDatabase($dbConfig, $dbName);
     }
 
-    private function getRootPdo(array $config): \PDO
+    protected function getRootPdo(array $config): \PDO
     {
         $dsn = sprintf('%s:host=%s;port=%s', $config['driver'], $config['host'], $config['port']);
         return new \PDO(

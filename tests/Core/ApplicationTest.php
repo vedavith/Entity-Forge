@@ -5,6 +5,7 @@ namespace Tests\Core;
 use EntityForge\Core\Application;
 use EntityForge\Core\CoreSchemaManager;
 use EntityForge\Tenant\TenantContext;
+use EntityForge\Tenant\TenantRepository;
 use Exception;
 use Mockery;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -115,6 +116,48 @@ class ApplicationTest extends TestCase
         $this->expectExceptionMessageMatches('/not booted/');
 
         $app->getConfig();
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_boot_throws_when_tenant_not_found_in_database_strategy(): void
+    {
+        $this->writeConfig(['strategy' => 'database']);
+
+        Mockery::mock('overload:' . CoreSchemaManager::class)->allows('ensure');
+
+        $repo = Mockery::mock('overload:' . TenantRepository::class);
+        $repo->allows('findByTenantId')->andReturn(null);
+
+        $app = new Application($this->tmpDir);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessageMatches('/Tenant not found/');
+
+        $app->boot(['headers' => ['X-Tenant-ID' => 'acme']], true);
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_boot_throws_when_tenant_is_suspended_in_database_strategy(): void
+    {
+        $this->writeConfig(['strategy' => 'database']);
+
+        Mockery::mock('overload:' . CoreSchemaManager::class)->allows('ensure');
+
+        $repo = Mockery::mock('overload:' . TenantRepository::class);
+        $repo->allows('findByTenantId')->andReturn([
+            'tenant_id' => 'acme',
+            'name'      => 'Acme',
+            'status'    => 'suspended',
+        ]);
+
+        $app = new Application($this->tmpDir);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessageMatches('/Tenant is suspended/');
+
+        $app->boot(['headers' => ['X-Tenant-ID' => 'acme']], true);
     }
 
     #[RunInSeparateProcess]

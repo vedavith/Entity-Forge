@@ -78,6 +78,15 @@ class SubdomainTenantResolverTest extends TestCase
         (new SubdomainTenantResolver())->resolve(['host' => 'acme.io']);
     }
 
+    public function test_throws_when_subdomain_part_is_empty(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessageMatches('/Empty subdomain/');
+
+        // Leading dot produces an empty first segment: ['', 'example', 'com']
+        (new SubdomainTenantResolver())->resolve(['host' => '.example.com']);
+    }
+
     public function test_factory_passes_subdomain_min_parts_from_config(): void
     {
         $config = [
