@@ -10,6 +10,12 @@ class TenantContext
 
     public static function setTenantId(string $tenantId): void
     {
+        if (self::$tenantId !== null) {
+            throw new \LogicException(
+                'TenantContext is already set. Call RequestLifecycle::begin() before handling a new request.'
+            );
+        }
+
         self::$tenantId = $tenantId;
     }
 

@@ -3,6 +3,7 @@
 namespace Tests\Tenant;
 
 use EntityForge\Tenant\Resolver\HeaderTenantResolver;
+use EntityForge\Tenant\Resolver\SubdomainTenantResolver;
 use EntityForge\Tenant\TenantResolverFactory;
 use Exception;
 use PHPUnit\Framework\TestCase;
@@ -41,11 +42,26 @@ class TenantResolverFactoryTest extends TestCase
         $this->assertSame('org1', $tenantId);
     }
 
+    public function test_creates_subdomain_resolver(): void
+    {
+        $resolver = TenantResolverFactory::create(['tenancy' => ['resolver' => 'subdomain']]);
+
+        $this->assertInstanceOf(SubdomainTenantResolver::class, $resolver);
+    }
+
+    public function test_subdomain_resolver_resolves_host(): void
+    {
+        $resolver = TenantResolverFactory::create(['tenancy' => ['resolver' => 'subdomain']]);
+
+        $tenantId = $resolver->resolve(['host' => 'acme.example.com']);
+        $this->assertSame('acme', $tenantId);
+    }
+
     public function test_throws_for_unsupported_resolver_type(): void
     {
         $this->expectException(Exception::class);
         $this->expectExceptionMessageMatches('/Unsupported tenant resolver type/');
 
-        TenantResolverFactory::create(['tenancy' => ['resolver' => 'subdomain']]);
+        TenantResolverFactory::create(['tenancy' => ['resolver' => 'jwt']]);
     }
 }

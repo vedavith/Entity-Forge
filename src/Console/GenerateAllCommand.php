@@ -15,12 +15,13 @@ class GenerateAllCommand extends Command
         $this
             ->setName('generate:all')
             ->setDescription('Generate all entities from config')
-            ->addOption('migration', null, InputOption::VALUE_NONE, 'Generate migration');
+            ->addOption('migration', null, InputOption::VALUE_NONE, 'Generate migration')
+            ->addOption('config-dir', null, InputOption::VALUE_OPTIONAL, 'Path to entity config directory', 'config/entities');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $configDir = 'config/entities';
+        $configDir = $input->getOption('config-dir');
 
         if (!is_dir($configDir)) {
             $output->writeln("<error>Directory not found: {$configDir}</error>");

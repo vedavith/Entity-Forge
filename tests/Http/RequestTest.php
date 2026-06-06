@@ -63,6 +63,37 @@ class RequestTest extends TestCase
         $this->assertSame('POST', $request->method());
     }
 
+    public function test_path_defaults_to_slash(): void
+    {
+        $request = new Request();
+
+        $this->assertSame('/', $request->path());
+    }
+
+    public function test_path_returns_provided_path(): void
+    {
+        $request = new Request(path: '/api/users');
+
+        $this->assertSame('/api/users', $request->path());
+    }
+
+    public function test_param_returns_null_when_key_absent(): void
+    {
+        $request = new Request();
+
+        $this->assertNull($request->param('id'));
+    }
+
+    public function test_withParams_returns_new_instance_with_params_set(): void
+    {
+        $original = new Request(path: '/users/42');
+        $modified = $original->withParams(['id' => '42']);
+
+        $this->assertNotSame($original, $modified);
+        $this->assertSame('42', $modified->param('id'));
+        $this->assertSame([], $original->params());
+    }
+
     public function test_capture_skipped_outside_web_sapi(): void
     {
         if (!function_exists('getallheaders')) {

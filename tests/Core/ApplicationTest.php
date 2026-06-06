@@ -3,8 +3,13 @@
 namespace Tests\Core;
 
 use EntityForge\Core\Application;
+use EntityForge\Core\CoreSchemaManager;
 use EntityForge\Tenant\TenantContext;
+use EntityForge\Tenant\TenantRepository;
 use Exception;
+use Mockery;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 class ApplicationTest extends TestCase
@@ -23,6 +28,7 @@ class ApplicationTest extends TestCase
         TenantContext::clear();
         array_map('unlink', glob($this->tmpDir . '/*.yaml'));
         rmdir($this->tmpDir);
+        Mockery::close();
     }
 
     private function writeConfig(array $tenancy = [], array $db = []): void
@@ -42,9 +48,13 @@ class ApplicationTest extends TestCase
         file_put_contents($this->tmpDir . '/application.yaml', $app);
     }
 
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_boot_loads_config(): void
     {
         $this->writeConfig();
+
+        Mockery::mock('overload:' . CoreSchemaManager::class)->allows('ensure');
 
         $app = new Application($this->tmpDir);
         $app->boot([], false);
@@ -54,9 +64,13 @@ class ApplicationTest extends TestCase
         $this->assertArrayHasKey('database', $config);
     }
 
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_boot_resolves_tenant_from_header(): void
     {
         $this->writeConfig();
+
+        Mockery::mock('overload:' . CoreSchemaManager::class)->allows('ensure');
 
         $app = new Application($this->tmpDir);
         $app->boot(['headers' => ['X-Tenant-ID' => 'acme']], true);
@@ -64,9 +78,13 @@ class ApplicationTest extends TestCase
         $this->assertSame('acme', TenantContext::getTenantId());
     }
 
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_boot_skips_tenant_resolution_when_disabled(): void
     {
         $this->writeConfig();
+
+        Mockery::mock('overload:' . CoreSchemaManager::class)->allows('ensure');
 
         $app = new Application($this->tmpDir);
         $app->boot([], false);
@@ -74,9 +92,13 @@ class ApplicationTest extends TestCase
         $this->assertFalse(TenantContext::hasTenantId());
     }
 
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_boot_throws_when_context_empty_and_tenant_enabled(): void
     {
         $this->writeConfig();
+
+        Mockery::mock('overload:' . CoreSchemaManager::class)->allows('ensure');
 
         $app = new Application($this->tmpDir);
 
@@ -96,9 +118,55 @@ class ApplicationTest extends TestCase
         $app->getConfig();
     }
 
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_boot_throws_when_tenant_not_found_in_database_strategy(): void
+    {
+        $this->writeConfig(['strategy' => 'database']);
+
+        Mockery::mock('overload:' . CoreSchemaManager::class)->allows('ensure');
+
+        $repo = Mockery::mock('overload:' . TenantRepository::class);
+        $repo->allows('findByTenantId')->andReturn(null);
+
+        $app = new Application($this->tmpDir);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessageMatches('/Tenant not found/');
+
+        $app->boot(['headers' => ['X-Tenant-ID' => 'acme']], true);
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_boot_throws_when_tenant_is_suspended_in_database_strategy(): void
+    {
+        $this->writeConfig(['strategy' => 'database']);
+
+        Mockery::mock('overload:' . CoreSchemaManager::class)->allows('ensure');
+
+        $repo = Mockery::mock('overload:' . TenantRepository::class);
+        $repo->allows('findByTenantId')->andReturn([
+            'tenant_id' => 'acme',
+            'name'      => 'Acme',
+            'status'    => 'suspended',
+        ]);
+
+        $app = new Application($this->tmpDir);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessageMatches('/Tenant is suspended/');
+
+        $app->boot(['headers' => ['X-Tenant-ID' => 'acme']], true);
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_get_config_returns_merged_config_after_boot(): void
     {
         $this->writeConfig();
+
+        Mockery::mock('overload:' . CoreSchemaManager::class)->allows('ensure');
 
         $app = new Application($this->tmpDir);
         $app->boot([], false);

@@ -7,6 +7,8 @@ use Exception;
 
 class TenantConnectionResolver
 {
+    private static array $connections = [];
+
     /**
      * @throws Exception
      */
@@ -15,11 +17,12 @@ class TenantConnectionResolver
         $strategy = $config['tenancy']['strategy'] ?? 'shared';
 
         if ($strategy === 'shared') {
-            return new Connection($config['database']);
+            $key = 'shared:' . $config['database']['database'];
+            return self::$connections[$key] ??= new Connection($config['database']);
         }
 
         if ($strategy === 'database') {
-            $tenantId = \EntityForge\Tenant\TenantContext::getTenantId();
+            $tenantId = TenantContext::getTenantId();
 
             if (!$tenantId) {
                 throw new Exception("Tenant ID not set");
@@ -28,9 +31,15 @@ class TenantConnectionResolver
             $dbConfig = $config['database'];
             $dbConfig['database'] = $dbConfig['database'] . '_' . $tenantId;
 
-            return new Connection($dbConfig);
+            $key = 'database:' . $dbConfig['database'];
+            return self::$connections[$key] ??= new Connection($dbConfig);
         }
 
         throw new Exception("Unsupported tenancy strategy");
+    }
+
+    public static function flush(): void
+    {
+        self::$connections = [];
     }
 }

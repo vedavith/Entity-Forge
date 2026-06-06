@@ -22,6 +22,13 @@ abstract class BaseRepository
         $this->table = $this->resolveTableName();
     }
 
+    private function assertColumnName(string $column): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
+            throw new \InvalidArgumentException("Invalid column name: '{$column}'");
+        }
+    }
+
     protected function resolveTableName(): string
     {
         $class = (new \ReflectionClass($this))
@@ -73,6 +80,8 @@ abstract class BaseRepository
         $data = $this->applyTenantScope($data);
 
         $columns = array_keys($data);
+
+        array_walk($columns, fn(string $c) => $this->assertColumnName($c));
 
         $placeholders = array_map(
             fn(string $column) => ':' . $column,
@@ -163,6 +172,7 @@ abstract class BaseRepository
         $params = [];
 
         foreach ($conditions as $column => $value) {
+            $this->assertColumnName($column);
             $clauses[] = "{$column} = :{$column}";
             $params[$column] = $value;
         }
@@ -198,6 +208,7 @@ abstract class BaseRepository
         $setClauses = [];
 
         foreach ($data as $column => $value) {
+            $this->assertColumnName($column);
             $setClauses[] = "{$column} = :{$column}";
         }
 

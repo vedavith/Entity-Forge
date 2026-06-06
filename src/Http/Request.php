@@ -9,16 +9,22 @@ class Request
         private array $headers = [],
         private array $query = [],
         private array $body = [],
-        private array|string $method = 'GET'
+        private array|string $method = 'GET',
+        private string $path = '/',
+        private array $params = []
     ) {}
 
     public static function capture(): self
     {
+        $uri = $_SERVER['REQUEST_URI'] ?? '/';
+        $path = parse_url($uri, PHP_URL_PATH) ?? '/';
+
         return new self(
             headers: getallheaders(),
             query: $_GET,
             body: $_POST,
-            method: $_SERVER['REQUEST_METHOD'] ?? 'GET'
+            method: $_SERVER['REQUEST_METHOD'] ?? 'GET',
+            path: $path
         );
     }
 
@@ -40,5 +46,27 @@ class Request
     public function method(): string
     {
         return $this->method;
+    }
+
+    public function path(): string
+    {
+        return $this->path;
+    }
+
+    public function param(string $name): ?string
+    {
+        return $this->params[$name] ?? null;
+    }
+
+    public function params(): array
+    {
+        return $this->params;
+    }
+
+    public function withParams(array $params): self
+    {
+        $clone = clone $this;
+        $clone->params = $params;
+        return $clone;
     }
 }

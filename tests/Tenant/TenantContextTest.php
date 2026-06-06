@@ -53,9 +53,20 @@ class TenantContextTest extends TestCase
         $this->assertFalse(TenantContext::hasTenantId());
     }
 
-    public function test_set_overwrites_existing_tenant_id(): void
+    public function test_set_throws_when_tenant_already_set(): void
     {
         TenantContext::setTenantId('first');
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessageMatches('/RequestLifecycle::begin/');
+
+        TenantContext::setTenantId('second');
+    }
+
+    public function test_set_succeeds_after_clear(): void
+    {
+        TenantContext::setTenantId('first');
+        TenantContext::clear();
         TenantContext::setTenantId('second');
 
         $this->assertSame('second', TenantContext::getTenantId());

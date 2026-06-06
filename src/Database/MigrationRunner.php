@@ -13,11 +13,13 @@ class MigrationRunner
         $this->connection = $connection;
     }
 
-    public function run(string $path): void
+    public function run(string $path, bool $dryRun = false): void
     {
         $pdo = $this->connection->getPdo();
 
-        $this->ensureMigrationsTable();
+        if (!$dryRun) {
+            $this->ensureMigrationsTable();
+        }
 
         $files = glob($path . '/*.up.sql');
         sort($files);
@@ -27,39 +29,42 @@ class MigrationRunner
             return;
         }
 
-        $executed = $this->getExecuted();
-        $batch = $this->nextBatch();
+        $executed = $dryRun ? $this->getExecutedSafe() : $this->getExecuted();
+        $batch    = $dryRun ? 0 : $this->nextBatch();
+        $prefix   = $dryRun ? '[DRY RUN] ' : '';
 
         foreach ($files as $file) {
             $name = basename($file);
 
             if (in_array($name, $executed, true)) {
-                echo "Skipped: {$name}\n";
+                echo "{$prefix}Skipped (already executed): {$name}\n";
                 continue;
             }
 
             $sql = file_get_contents($file);
 
+            if ($dryRun) {
+                echo "{$prefix}Would execute: {$name}\n";
+                continue;
+            }
+
             try {
                 $pdo->exec($sql);
-
                 $this->mark($name, $batch);
-
                 echo "Executed: {$name}\n";
-
             } catch (\Throwable $e) {
                 throw new \Exception("Migration failed: {$name} - " . $e->getMessage());
             }
         }
 
-        echo "✔ Done\n";
+        echo $dryRun ? "{$prefix}Done (no changes applied)\n" : "✔ Done\n";
     }
 
-    public function rollback(string $path): void
+    public function rollback(string $path, bool $dryRun = false): void
     {
-        $pdo = $this->connection->getPdo();
-
-        $batch = $this->lastBatch();
+        $pdo    = $this->connection->getPdo();
+        $prefix = $dryRun ? '[DRY RUN] ' : '';
+        $batch  = $this->lastBatch();
 
         if ($batch === 0) {
             echo "Nothing to rollback.\n";
@@ -82,6 +87,11 @@ class MigrationRunner
 
             $sql = file_get_contents($down);
 
+            if ($dryRun) {
+                echo "{$prefix}Would roll back: {$migration}\n";
+                continue;
+            }
+
             try {
                 $pdo->exec($sql);
 
@@ -95,7 +105,7 @@ class MigrationRunner
             }
         }
 
-        echo "✔ Rollback complete\n";
+        echo $dryRun ? "{$prefix}Done (no changes applied)\n" : "✔ Rollback complete\n";
     }
 
     private function ensureMigrationsTable(): void
@@ -125,6 +135,15 @@ class MigrationRunner
         return $this->connection->getPdo()
             ->query("SELECT migration FROM migrations")
             ->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    private function getExecutedSafe(): array
+    {
+        try {
+            return $this->getExecuted();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     private function mark(string $migration, int $batch): void

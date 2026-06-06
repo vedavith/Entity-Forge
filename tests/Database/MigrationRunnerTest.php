@@ -71,6 +71,30 @@ class MigrationRunnerTest extends TestCase
         $this->pdo->allows('query')->with('SELECT MAX(batch) FROM migrations')->andReturn($batchStmt);
     }
 
+    public function test_ensures_migrations_table_adds_batch_column_when_missing(): void
+    {
+        $this->pdo->allows('exec')->with(Mockery::pattern('/CREATE TABLE IF NOT EXISTS migrations/'))->once();
+
+        // SHOW COLUMNS returns nothing — 'batch' column absent
+        $colStmt = Mockery::mock(PDOStatement::class);
+        $colStmt->allows('fetch')->andReturn(false);
+        $this->pdo->allows('query')->with("SHOW COLUMNS FROM migrations LIKE 'batch'")->andReturn($colStmt);
+
+        $this->pdo->allows('exec')->with(Mockery::pattern('/ALTER TABLE migrations ADD COLUMN batch/'))->once();
+
+        $execStmt = Mockery::mock(PDOStatement::class);
+        $execStmt->allows('fetchAll')->with(PDO::FETCH_COLUMN)->andReturn([]);
+        $this->pdo->allows('query')->with('SELECT migration FROM migrations')->andReturn($execStmt);
+
+        $batchStmt = Mockery::mock(PDOStatement::class);
+        $batchStmt->allows('fetchColumn')->andReturn(0);
+        $this->pdo->allows('query')->with('SELECT MAX(batch) FROM migrations')->andReturn($batchStmt);
+
+        $this->expectOutputString("No migrations found.\n");
+
+        $this->runner->run($this->tmpDir);
+    }
+
     public function test_run_prints_no_migrations_when_dir_is_empty(): void
     {
         $this->mockMigrationsTable();
@@ -105,9 +129,64 @@ class MigrationRunnerTest extends TestCase
 
         $this->mockMigrationsTable(['0001_create_users.up.sql'], 1);
 
-        $this->expectOutputRegex('/Skipped: 0001_create_users\.up\.sql/');
+        $this->expectOutputRegex('/Skipped \(already executed\): 0001_create_users\.up\.sql/');
 
         $this->runner->run($this->tmpDir);
+    }
+
+    public function test_dry_run_shows_would_execute_without_writing(): void
+    {
+        file_put_contents($this->tmpDir . '/0001_create_users.up.sql', 'CREATE TABLE users (id INT);');
+
+        // dry-run: no ensureMigrationsTable, getExecutedSafe falls back to [] on failure
+        $execStmt = Mockery::mock(PDOStatement::class);
+        $execStmt->allows('fetchAll')->with(PDO::FETCH_COLUMN)->andReturn([]);
+        $this->pdo->allows('query')->with('SELECT migration FROM migrations')->andReturn($execStmt);
+
+        // pdo->exec must NOT be called
+        $this->pdo->shouldNotReceive('exec');
+
+        $this->expectOutputRegex('/\[DRY RUN\] Would execute: 0001_create_users\.up\.sql/');
+
+        $this->runner->run($this->tmpDir, true);
+    }
+
+    public function test_dry_run_marks_already_executed_as_skipped(): void
+    {
+        file_put_contents($this->tmpDir . '/0001_create_users.up.sql', 'CREATE TABLE users (id INT);');
+
+        $execStmt = Mockery::mock(PDOStatement::class);
+        $execStmt->allows('fetchAll')->with(PDO::FETCH_COLUMN)->andReturn(['0001_create_users.up.sql']);
+        $this->pdo->allows('query')->with('SELECT migration FROM migrations')->andReturn($execStmt);
+
+        $this->pdo->shouldNotReceive('exec');
+
+        $this->expectOutputRegex('/\[DRY RUN\] Skipped \(already executed\): 0001_create_users\.up\.sql/');
+
+        $this->runner->run($this->tmpDir, true);
+    }
+
+    public function test_dry_run_rollback_shows_would_roll_back_without_writing(): void
+    {
+        $migration = '0001_create_users.up.sql';
+        file_put_contents($this->tmpDir . '/0001_create_users.down.sql', 'DROP TABLE users;');
+
+        $batchStmt = Mockery::mock(PDOStatement::class);
+        $batchStmt->allows('fetchColumn')->andReturn(1);
+        $this->pdo->allows('query')->with('SELECT MAX(batch) FROM migrations')->andReturn($batchStmt);
+
+        $listStmt = Mockery::mock(PDOStatement::class);
+        $listStmt->allows('execute')->with(['b' => 1])->andReturn(true);
+        $listStmt->allows('fetchAll')->with(PDO::FETCH_COLUMN)->andReturn([$migration]);
+        $this->pdo->allows('prepare')
+            ->with('SELECT migration FROM migrations WHERE batch = :b ORDER BY id DESC')
+            ->andReturn($listStmt);
+
+        $this->pdo->shouldNotReceive('exec');
+
+        $this->expectOutputRegex('/\[DRY RUN\] Would roll back: 0001_create_users\.up\.sql/');
+
+        $this->runner->rollback($this->tmpDir, true);
     }
 
     public function test_rollback_does_nothing_when_no_batches(): void

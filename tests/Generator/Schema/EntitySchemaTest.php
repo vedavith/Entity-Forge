@@ -80,4 +80,16 @@ class EntitySchemaTest extends TestCase
         $schema = $this->schema(['relations' => ['belongsTo' => ['User' => 'user_id']]]);
         $this->assertSame(['belongsTo' => ['User' => 'user_id']], $schema->getRelations());
     }
+
+    public function test_get_indexes_returns_empty_array_by_default(): void
+    {
+        $this->assertSame([], $this->schema()->getIndexes());
+    }
+
+    public function test_get_indexes_returns_defined_indexes(): void
+    {
+        $indexes = [['columns' => ['email'], 'unique' => true]];
+        $schema  = $this->schema(['indexes' => $indexes]);
+        $this->assertSame($indexes, $schema->getIndexes());
+    }
 }
