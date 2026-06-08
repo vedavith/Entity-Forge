@@ -62,6 +62,6 @@ class TenantResolverFactoryTest extends TestCase
         $this->expectException(Exception::class);
         $this->expectExceptionMessageMatches('/Unsupported tenant resolver type/');
 
-        TenantResolverFactory::create(['tenancy' => ['resolver' => 'jwt']]);
+        TenantResolverFactory::create(['tenancy' => ['resolver' => 'unknown']]);
     }
 }
