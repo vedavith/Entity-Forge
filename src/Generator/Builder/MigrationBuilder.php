@@ -6,23 +6,28 @@ use EntityForge\Generator\Schema\EntitySchema;
 
 class MigrationBuilder
 {
-    public function buildUp(EntitySchema $schema): string
+    /**
+     * @param array<string, string> $pkMap  entity name → primary key column, used to resolve FK targets
+     */
+    public function buildUp(EntitySchema $schema, array $pkMap = []): string
     {
         $table     = strtolower($schema->getEntityName()) . 's';
         $fields    = $schema->getFields();
         $relations = $schema->getRelations();
         $indexes   = $schema->getIndexes();
+        $pk        = $schema->getPrimaryKey();
 
         $definitions = [];
 
         foreach ($fields as $name => $type) {
-            $definitions[] = $this->mapColumn($name, $type);
+            $definitions[] = $this->mapColumn($name, $type, $pk ?? '');
         }
 
         foreach ($relations['belongsTo'] ?? [] as $refEntity => $fkColumn) {
             $refTable   = strtolower($refEntity) . 's';
+            $refPk      = $pkMap[$refEntity] ?? 'id';
             $constraint = "fk_{$table}_{$fkColumn}";
-            $definitions[] = "CONSTRAINT {$constraint} FOREIGN KEY ({$fkColumn}) REFERENCES {$refTable}(id)";
+            $definitions[] = "CONSTRAINT {$constraint} FOREIGN KEY ({$fkColumn}) REFERENCES {$refTable}({$refPk})";
         }
 
         foreach ($indexes as $index) {
@@ -49,7 +54,7 @@ SQL;
         return "DROP TABLE IF EXISTS {$table};";
     }
 
-    private function mapColumn(string $name, string $type): string
+    private function mapColumn(string $name, string $type, string $pk = 'id'): string
     {
         $sqlType = match ($type) {
             'int' => 'INT',
@@ -59,8 +64,8 @@ SQL;
             default => 'TEXT'
         };
 
-        if ($name === 'id') {
-            return "id INT PRIMARY KEY AUTO_INCREMENT";
+        if ($name === $pk) {
+            return "{$pk} INT PRIMARY KEY AUTO_INCREMENT";
         }
 
         return "{$name} {$sqlType}";

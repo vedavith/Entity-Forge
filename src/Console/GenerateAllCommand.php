@@ -19,6 +19,51 @@ class GenerateAllCommand extends Command
             ->addOption('config-dir', null, InputOption::VALUE_OPTIONAL, 'Path to entity config directory', 'config/entities');
     }
 
+    /**
+     * Topological sort so referenced entities are generated before their dependents.
+     * Throws if a circular dependency is detected.
+     *
+     * @param array<string, array<mixed>> $configs  keyed by entity name
+     * @return array<string, array<mixed>>
+     */
+    private function sortByDependencies(array $configs): array
+    {
+        $deps = [];
+        foreach ($configs as $name => $config) {
+            $deps[$name] = array_keys($config['relations']['belongsTo'] ?? []);
+        }
+
+        $sorted = [];
+        $visited = [];
+
+        $visit = function (string $name) use (&$visit, &$sorted, &$visited, $configs, $deps): void {
+            if (isset($visited[$name])) {
+                if ($visited[$name] === 'pending') {
+                    throw new \RuntimeException("Circular dependency detected involving entity: {$name}");
+                }
+                return;
+            }
+
+            $visited[$name] = 'pending';
+
+            foreach ($deps[$name] ?? [] as $dep) {
+                if (!isset($configs[$dep])) {
+                    continue; // referenced entity not in this batch — skip
+                }
+                $visit($dep);
+            }
+
+            $visited[$name] = 'done';
+            $sorted[$name] = $configs[$name];
+        };
+
+        foreach (array_keys($configs) as $name) {
+            $visit($name);
+        }
+
+        return $sorted;
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $configDir = $input->getOption('config-dir');
@@ -35,28 +80,40 @@ class GenerateAllCommand extends Command
             return Command::SUCCESS;
         }
 
-        // Ensure deterministic order
         sort($files);
+
+        $configs = [];
+        foreach ($files as $file) {
+            $config = json_decode(file_get_contents($file), true);
+            if (!$config) {
+                $output->writeln("<error>Invalid JSON: {$file}</error>");
+                continue;
+            }
+            $configs[$config['entity']] = $config;
+        }
+
+        try {
+            $configs = $this->sortByDependencies($configs);
+        } catch (\RuntimeException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            return Command::FAILURE;
+        }
+
+        $pkMap = [];
+        foreach ($configs as $entityName => $config) {
+            $fields = $config['fields'] ?? [];
+            $candidate = strtolower($entityName) . '_id';
+            $pkMap[$entityName] = isset($fields['id']) ? 'id' : (isset($fields[$candidate]) ? $candidate : 'id');
+        }
 
         $withMigration = $input->getOption('migration');
 
         // IMPORTANT: single generator instance
         $generator = new EntityGenerator();
 
-
-        foreach ($files as $file) {
-            $config = json_decode(file_get_contents($file), true);
-
-            if (!$config) {
-                $output->writeln("<error>Invalid JSON: {$file}</error>");
-                continue;
-            }
-
+        foreach ($configs as $entityName => $config) {
             try {
-                $entityName = $config['entity'] ?? 'Unknown';
-
-                $generator->generate($config, $withMigration);
-
+                $generator->generate($config, $withMigration, $pkMap);
                 $output->writeln("<info>Generated {$entityName}</info>");
             } catch (\Throwable $e) {
                 $output->writeln("<error>{$e->getMessage()}</error>");

@@ -29,7 +29,10 @@ class EntityGenerator
         $this->writer = new FileWriter();
     }
 
-    public function generate(array $config, bool $withMigration = false): void
+    /**
+     * @param array<string, string> $pkMap  entity name → primary key column for FK resolution
+     */
+    public function generate(array $config, bool $withMigration = false, array $pkMap = []): void
     {
         // Validate config
         $this->validator->validate($config);
@@ -49,7 +52,7 @@ class EntityGenerator
         if ($withMigration) {
             $baseName = $this->generateMigrationBaseName($entityName);
 
-            $upSql = $this->migrationBuilder->buildUp($schema);
+            $upSql = $this->migrationBuilder->buildUp($schema, $pkMap);
             $downSql = $this->migrationBuilder->buildDown($schema);
 
             $this->writer->write(
