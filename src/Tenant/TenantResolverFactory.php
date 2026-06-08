@@ -3,6 +3,7 @@
 namespace EntityForge\Tenant;
 
 use EntityForge\Tenant\Resolver\HeaderTenantResolver;
+use EntityForge\Tenant\Resolver\JwtTenantResolver;
 use EntityForge\Tenant\Resolver\SubdomainTenantResolver;
 use Exception;
 
@@ -21,6 +22,11 @@ class TenantResolverFactory
             'subdomain' => new SubdomainTenantResolver(
                 (int) ($config['tenancy']['subdomain_depth'] ?? 0),
                 (int) ($config['tenancy']['subdomain_min_parts'] ?? 3)
+            ),
+            'jwt' => new JwtTenantResolver(
+                $config['tenancy']['jwt_public_key'] ?? '',
+                $config['tenancy']['jwt_algorithm']  ?? 'RS256',
+                $config['tenancy']['jwt_tenant_claim'] ?? 'tenant_id'
             ),
             default => throw new Exception("Unsupported tenant resolver type: {$resolverType}"),
         };
