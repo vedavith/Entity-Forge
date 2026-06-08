@@ -50,6 +50,9 @@ jobs:
           composer install --prefer-dist --no-progress --no-interaction
           if [ -n "$LOG_COVERAGE" ]; then mkdir -p coverage; fi
 
+      - name: Static analysis (PHPStan)
+        run: vendor/bin/phpstan analyse --no-progress
+
       - name: Run tests
         run: |
           vendor/bin/phpunit \
