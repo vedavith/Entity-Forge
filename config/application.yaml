@@ -3,9 +3,13 @@ application:
 
 tenancy:
   enabled: true
-  resolver: header
+  strategy: database          # shared | database
+  resolver: header            # header | subdomain | jwt
   header_key: X-Tenant-ID
-  strategy: database # shared | database
+  # resolver: jwt
+  # jwt_public_key: /path/to/public.pem
+  # jwt_algorithm: RS256
+  # jwt_tenant_claim: tenant_id
 
 database:
   driver: mysql
