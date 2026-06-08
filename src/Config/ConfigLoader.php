@@ -6,8 +6,6 @@ use Exception;
 
 class ConfigLoader
 {
-    private array $config = [];
-
     /**
      * @throws Exception
      */
