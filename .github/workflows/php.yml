@@ -82,10 +82,16 @@ jobs:
           echo \"PASS\n\";
           "
 
+      - name: Import Codecov GPG key
+        if: env.LOG_COVERAGE
+        run: |
+          gpg --keyserver keyserver.ubuntu.com \
+              --recv-keys 27034E7FDB850E0BBC2C62FF806BB28AED779869 || true
+
       - name: Upload coverage to Codecov
         if: env.LOG_COVERAGE
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/clover.xml
-          fail_ci_if_error: true
+          fail_ci_if_error: false
