@@ -26,7 +26,20 @@ class EntitySchema
         return $this->config['timestamps'] ?? false;
     }
 
-    public function getFields(): array
+    public function getPrimaryKey(): ?string
+    {
+        $fields = $this->config['fields'] ?? [];
+        if (isset($fields['id'])) {
+            return 'id';
+        }
+        $candidate = strtolower($this->config['entity']) . '_id';
+        if (isset($fields[$candidate])) {
+            return $candidate;
+        }
+        return null;
+    }
+
+public function getFields(): array
     {
         $fields = $this->config['fields'] ?? [];
 

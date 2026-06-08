@@ -3,8 +3,12 @@
   "multiTenant": true,
   "timestamps": true,
   "fields": {
-    "id": "int",
+    "user_id": "int",
     "name": "string",
     "email": "string"
-  }
+  },
+  "indexes": [
+    { "columns": ["email"], "unique": true },
+    { "columns": ["name"] }
+  ]
 }
