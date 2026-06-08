@@ -1,0 +1,21 @@
+{
+  "entity": "Post",
+  "multiTenant": true,
+  "timestamps": true,
+  "fields": {
+    "id": "int",
+    "user_id": "int",
+    "title": "string",
+    "body": "string"
+  },
+
+  "relations": {
+    "belongsTo": {
+      "User": "user_id"
+    }
+  },
+  "indexes": [
+    { "columns": ["user_id"] },
+    { "columns": ["user_id", "title"], "unique": true }
+  ]
+}
