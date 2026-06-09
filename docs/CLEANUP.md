@@ -8,7 +8,7 @@ This document tracks deliberate gaps and deferred work in the current codebase.
 
 **SubdomainTenantResolver minimum parts are configurable.** The default requires 3-part hosts (`acme.example.com`). Set `tenancy.subdomain_min_parts: 2` in `application.yaml` to support two-part hosts like `acme.io`. Single-part hosts (e.g. `localhost`) always throw regardless of this setting.
 
-**No JWT or session resolver.** `TenantResolverInterface` is designed for extension. Wire a new implementation into `TenantResolverFactory` and configure `tenancy.resolver` accordingly.
+**`JwtTenantResolver` is implemented.** Decodes and verifies a Bearer JWT, extracts a configurable claim (default: `tenant_id`). Configure via `tenancy.jwt_public_key`, `tenancy.jwt_algorithm`, and `tenancy.jwt_tenant_claim`. Session-based resolution is not yet implemented — add a `SessionTenantResolver` following the same pattern.
 
 ---
 

@@ -58,7 +58,7 @@ src/
     ├── TenantContext.php          — static singleton holding current tenant ID
     ├── TenantGuard.php            — throws if TenantContext is empty
     ├── TenantConnectionResolver.php — resolves + caches PDO connection per tenant
-    ├── TenantResolverFactory.php  — creates header or subdomain resolver
+    ├── TenantResolverFactory.php  — creates header, subdomain, or jwt resolver
     ├── TenantResolverInterface.php
     ├── TenantProvisioner.php      — creates/drops tenant DB, runs migrations
     ├── TenantRepository.php       — CRUD on the main DB tenants table
@@ -66,7 +66,8 @@ src/
     ├── RequestLifecycle.php       — clears context + connection cache per request
     └── Resolver/
         ├── HeaderTenantResolver.php    — reads tenant from a request header
-        └── SubdomainTenantResolver.php — extracts tenant from subdomain
+        ├── SubdomainTenantResolver.php — extracts tenant from subdomain
+        └── JwtTenantResolver.php       — verifies Bearer JWT, extracts tenant claim
 ```
 
 ---
@@ -124,6 +125,30 @@ entity_forge_corp       ← tenant DB: all application data
 ```
 
 `TenantConnectionResolver` caches open connections in a static registry keyed by database name. Call `TenantConnectionResolver::flush()` (or `RequestLifecycle::begin()`) between requests in worker-mode PHP.
+
+---
+
+## Tenant Resolvers
+
+Configured via `tenancy.resolver` in `application.yaml`.
+
+| Resolver | Config keys | How it works |
+|---|---|---|
+| `header` | `header_key` (default: `X-Tenant-ID`) | Reads the named HTTP header from the request context |
+| `subdomain` | `subdomain_depth`, `subdomain_min_parts` (default: 3) | Extracts the leading subdomain from the `host` context key. Set `subdomain_min_parts: 2` for two-part hosts like `acme.io` |
+| `jwt` | `jwt_public_key`, `jwt_algorithm` (default: `RS256`), `jwt_tenant_claim` (default: `tenant_id`) | Decodes and verifies a Bearer JWT from the `Authorization` header, then extracts the named claim |
+
+Example for JWT:
+
+```yaml
+tenancy:
+  resolver: jwt
+  jwt_public_key: /path/to/public.pem
+  jwt_algorithm: RS256
+  jwt_tenant_claim: tenant_id
+```
+
+Add custom resolvers by implementing `TenantResolverInterface` and registering them in `TenantResolverFactory`.
 
 ---
 
