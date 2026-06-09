@@ -47,8 +47,12 @@ composer require entity-forge/entity-forge
 tenancy:
   enabled: true
   strategy: shared        # or: database
-  resolver: header        # or: subdomain
+  resolver: header        # or: subdomain | jwt
   header_key: X-Tenant-ID
+  # resolver: jwt
+  # jwt_public_key: /path/to/public.pem
+  # jwt_algorithm: RS256
+  # jwt_tenant_claim: tenant_id
 
 database:
   driver: mysql
@@ -182,7 +186,8 @@ Configure via `tenancy.resolver` in `application.yaml`:
 | Resolver | Config keys | How it works |
 |---|---|---|
 | `header` | `header_key` (default: `X-Tenant-ID`) | Reads the named HTTP header from the request context |
-| `subdomain` | `subdomain_depth`, `subdomain_min_parts` | Extracts the leading subdomain from the `host` context key (`acme.example.com` → `acme`). Set `subdomain_min_parts: 2` to support two-part hosts like `acme.io` |
+| `subdomain` | `subdomain_depth`, `subdomain_min_parts` (default: 3) | Extracts the leading subdomain from the `host` context key (`acme.example.com` → `acme`). Set `subdomain_min_parts: 2` for two-part hosts like `acme.io` |
+| `jwt` | `jwt_public_key`, `jwt_algorithm` (default: `RS256`), `jwt_tenant_claim` (default: `tenant_id`) | Decodes and verifies a Bearer JWT from the `Authorization` header, then extracts the named claim |
 
 Add custom resolvers by implementing `TenantResolverInterface` and registering them in `TenantResolverFactory`.
 
@@ -414,7 +419,7 @@ vendor/bin/phpunit tests/Path/To/SomeTest.php   # single file
 
 ## Roadmap
 
-- [ ] JWT / session-based tenant resolver
+- [ ] Session-based tenant resolver
 - [ ] Artisan-style scaffolding for middleware and controllers
 - [ ] Official Packagist release
 

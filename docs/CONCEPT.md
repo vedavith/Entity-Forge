@@ -28,11 +28,12 @@ A static singleton that holds the current tenant ID for the lifetime of a reques
 Resolves and caches the PDO connection for the current tenant. In `shared` mode it returns a connection to the main DB. In `database` mode it connects to `{base_db}_{tenantId}`. Connections are pooled in a static registry; call `flush()` to clear the cache.
 
 ## TenantResolver
-Extracts a tenant ID from request context. Two implementations ship:
-- `HeaderTenantResolver` — reads a configurable header (default: `X-Tenant-ID`)
+Extracts a tenant ID from request context. Three implementations ship:
+- `HeaderTenantResolver` — reads a configurable header (default: `X-Tenant-ID`). Configure via `tenancy.header_key`.
 - `SubdomainTenantResolver` — extracts the leading subdomain from the host (e.g. `acme.example.com` → `acme`). Set `tenancy.subdomain_min_parts: 2` to support two-part hosts like `acme.io`.
+- `JwtTenantResolver` — decodes and verifies a Bearer JWT from the `Authorization` header, then extracts a configurable claim (default: `tenant_id`). Configure via `tenancy.jwt_public_key`, `tenancy.jwt_algorithm` (default `RS256`), and `tenancy.jwt_tenant_claim`.
 
-Configured via `tenancy.resolver` in `application.yaml`. Add new resolvers by implementing `TenantResolverInterface` and registering them in `TenantResolverFactory`.
+Configured via `tenancy.resolver: header | subdomain | jwt` in `application.yaml`. Add new resolvers by implementing `TenantResolverInterface` and registering them in `TenantResolverFactory`.
 
 ## TenantService
 The intended entry point for tenant lifecycle operations:
