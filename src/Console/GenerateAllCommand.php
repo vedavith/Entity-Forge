@@ -50,7 +50,7 @@ class GenerateAllCommand extends Command
                 if (!isset($configs[$dep])) {
                     continue; // referenced entity not in this batch — skip
                 }
-                $visit($dep);
+                $visit((string) $dep);
             }
 
             $visited[$name] = 'done';
@@ -84,7 +84,7 @@ class GenerateAllCommand extends Command
 
         $configs = [];
         foreach ($files as $file) {
-            $config = json_decode(file_get_contents($file), true);
+            $config = json_decode((string) file_get_contents($file), true);
             if (!$config) {
                 $output->writeln("<error>Invalid JSON: {$file}</error>");
                 continue;

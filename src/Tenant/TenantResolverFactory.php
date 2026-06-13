@@ -10,6 +10,7 @@ use Exception;
 class TenantResolverFactory
 {
     /**
+     * @param array<string, mixed> $config
      * @throws Exception
      */
     public static function create(array $config): TenantResolverInterface

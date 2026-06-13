@@ -21,7 +21,7 @@ class MigrationRunner
             $this->ensureMigrationsTable();
         }
 
-        $files = glob($path . '/*.up.sql');
+        $files = glob($path . '/*.up.sql') ?: [];
         sort($files);
 
         if (empty($files)) {
@@ -41,11 +41,14 @@ class MigrationRunner
                 continue;
             }
 
-            $sql = file_get_contents($file);
-
             if ($dryRun) {
                 echo "{$prefix}Would execute: {$name}\n";
                 continue;
+            }
+
+            $sql = file_get_contents($file);
+            if ($sql === false) {
+                throw new \Exception("Cannot read migration file: {$file}");
             }
 
             try {
@@ -85,11 +88,14 @@ class MigrationRunner
                 throw new \Exception("Missing down file: {$down}");
             }
 
-            $sql = file_get_contents($down);
-
             if ($dryRun) {
                 echo "{$prefix}Would roll back: {$migration}\n";
                 continue;
+            }
+
+            $sql = file_get_contents($down);
+            if ($sql === false) {
+                throw new \Exception("Cannot read rollback file: {$down}");
             }
 
             try {
@@ -112,7 +118,6 @@ class MigrationRunner
     {
         $pdo = $this->connection->getPdo();
 
-        // Create table if not exists
         $pdo->exec("
         CREATE TABLE IF NOT EXISTS migrations (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -121,8 +126,10 @@ class MigrationRunner
         )
     ");
 
-        // Check if 'batch' column exists
         $stmt = $pdo->query("SHOW COLUMNS FROM migrations LIKE 'batch'");
+        if ($stmt === false) {
+            throw new \Exception("Failed to check migrations table schema.");
+        }
         $column = $stmt->fetch();
 
         if (!$column) {
@@ -130,13 +137,21 @@ class MigrationRunner
         }
     }
 
+    /**
+     * @return array<int, string>
+     */
     private function getExecuted(): array
     {
-        return $this->connection->getPdo()
-            ->query("SELECT migration FROM migrations")
-            ->fetchAll(PDO::FETCH_COLUMN);
+        $stmt = $this->connection->getPdo()->query("SELECT migration FROM migrations");
+        if ($stmt === false) {
+            throw new \Exception("Failed to query migrations table.");
+        }
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
+    /**
+     * @return array<int, string>
+     */
     private function getExecutedSafe(): array
     {
         try {
@@ -161,12 +176,18 @@ class MigrationRunner
     private function nextBatch(): int
     {
         $stmt = $this->connection->getPdo()->query("SELECT MAX(batch) FROM migrations");
+        if ($stmt === false) {
+            throw new \Exception("Failed to query migration batch.");
+        }
         return ((int) $stmt->fetchColumn()) + 1;
     }
 
     private function lastBatch(): int
     {
         $stmt = $this->connection->getPdo()->query("SELECT MAX(batch) FROM migrations");
+        if ($stmt === false) {
+            throw new \Exception("Failed to query migration batch.");
+        }
         return (int) $stmt->fetchColumn();
     }
 }

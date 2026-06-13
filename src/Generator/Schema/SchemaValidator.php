@@ -4,6 +4,7 @@ namespace EntityForge\Generator\Schema;
 
 class SchemaValidator
 {
+    /** @param array<string, mixed> $config */
     public function validate(array $config): void
     {
         // Entity name is required

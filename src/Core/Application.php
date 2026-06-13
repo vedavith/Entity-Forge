@@ -13,7 +13,8 @@ use Exception;
 
 class Application
 {
-    private array $config;
+    /** @var array<string, mixed> */
+    private array $config = [];
     private string $configPath;
     private Container $container;
 
@@ -24,6 +25,7 @@ class Application
     }
 
     /**
+     * @param array<string, mixed> $context
      * @throws Exception
      */
     public function boot(array $context = [], bool $resolveTenant = true): void
@@ -86,7 +88,7 @@ class Application
      */
     private function assertTenantActive(): void
     {
-        $tenantId = TenantContext::getTenantId();
+        $tenantId = TenantContext::getTenantId() ?? throw new Exception("Tenant not resolved.");
         $repo = new TenantRepository($this->config);
         $tenant = $repo->findByTenantId($tenantId);
 
@@ -100,6 +102,7 @@ class Application
     }
 
     /**
+     * @param array<string, mixed> $context
      * @throws Exception
      */
     private function resolveTenant(array $context): void
@@ -116,6 +119,7 @@ class Application
     }
 
     /**
+     * @return array<string, mixed>
      * @throws Exception
      */
     public function getConfig(): array

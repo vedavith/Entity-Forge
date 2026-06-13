@@ -30,6 +30,7 @@ class EntityGenerator
     }
 
     /**
+     * @param array<string, mixed> $config
      * @param array<string, string> $pkMap  entity name → primary key column for FK resolution
      */
     public function generate(array $config, bool $withMigration = false, array $pkMap = []): void

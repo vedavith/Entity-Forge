@@ -8,6 +8,7 @@ class ConfigValidator
     private const REQUIRED_DB_KEYS = ['driver', 'host', 'port', 'database', 'username', 'password'];
 
     /**
+     * @param array<string, mixed> $config
      * @throws Exception
      */
     public function validate(array $config): void

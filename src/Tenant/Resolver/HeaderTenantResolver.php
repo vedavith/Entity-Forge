@@ -16,6 +16,7 @@ class HeaderTenantResolver implements TenantResolverInterface
     }
 
     /**
+     * @param array<string, mixed> $context
      * @throws Exception
      */
     public function resolve(array $context): string

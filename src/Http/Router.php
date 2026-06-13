@@ -8,6 +8,7 @@ use function FastRoute\simpleDispatcher;
 
 class Router
 {
+    /** @var array<int, array{string, string, callable}> */
     private array $routes = [];
 
     public function get(string $path, callable $handler): self

@@ -13,8 +13,10 @@ abstract class BaseRepository
 {
     protected Connection $connection;
     protected string $table;
+    /** @var array<string, mixed> */
     protected array $config;
 
+    /** @param array<string, mixed> $config */
     public function __construct(array $config)
     {
         $this->config = $config;
@@ -44,12 +46,12 @@ abstract class BaseRepository
     protected function getTenantId(): string
     {
         TenantGuard::ensureTenant();
-        return TenantContext::getTenantId();
+        return TenantContext::getTenantId() ?? throw new \LogicException('Tenant ID is null after guard check.');
     }
 
     /**
-     * Apply tenant scope only for shared strategy
-     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      * @throws Exception
      */
     protected function applyTenantScope(array $data): array
@@ -71,8 +73,8 @@ abstract class BaseRepository
     }
 
     /**
-     * Insert record
-     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      * @throws Exception
      */
     public function create(array $data): array
@@ -105,8 +107,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Fetch all records
-     *
+     * @return array<int, array<string, mixed>>
      * @throws Exception
      */
     public function findAll(): array
@@ -131,8 +132,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Find record by ID
-     *
+     * @return array<string, mixed>|null
      * @throws Exception
      */
     public function findById(int $id): ?array
@@ -161,8 +161,8 @@ abstract class BaseRepository
     }
 
     /**
-     * Find records by conditions
-     *
+     * @param array<string, mixed> $conditions
+     * @return array<int, array<string, mixed>>
      * @throws Exception
      */
     public function where(array $conditions): array
@@ -199,15 +199,14 @@ abstract class BaseRepository
     }
 
     /**
-     * Update record by ID
-     *
+     * @param array<string, mixed> $data
      * @throws Exception
      */
     public function update(int $id, array $data): bool
     {
         $setClauses = [];
 
-        foreach ($data as $column => $value) {
+        foreach (array_keys($data) as $column) {
             $this->assertColumnName($column);
             $setClauses[] = "{$column} = :{$column}";
         }

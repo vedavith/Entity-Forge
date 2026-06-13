@@ -10,6 +10,7 @@ class TenantRepository
     private Connection $connection;
 
     /**
+     * @param array<string, mixed> $config
      * @throws Exception
      */
     public function __construct(array $config)
@@ -28,13 +29,20 @@ class TenantRepository
         ]);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     * @throws \Exception
+     */
     public function all(): array
     {
-        return $this->connection->getPdo()
-            ->query("SELECT * FROM tenants")
-            ->fetchAll(\PDO::FETCH_ASSOC);
+        $stmt = $this->connection->getPdo()->query("SELECT * FROM tenants");
+        if ($stmt === false) {
+            throw new \Exception("Failed to query tenants.");
+        }
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    /** @return array<int, array<string, mixed>> */
     public function allActive(): array
     {
         $stmt = $this->connection->getPdo()->prepare(
@@ -55,6 +63,7 @@ class TenantRepository
         return (int) $stmt->fetchColumn() > 0;
     }
 
+    /** @return array<string, mixed>|null */
     public function findByTenantId(string $tenantId): ?array
     {
         $stmt = $this->connection->getPdo()->prepare(

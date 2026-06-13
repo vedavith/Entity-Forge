@@ -7,6 +7,7 @@ use Exception;
 class ConfigLoader
 {
     /**
+     * @return array<string, mixed>
      * @throws Exception
      */
     public function load(string $path): array
@@ -19,11 +20,15 @@ class ConfigLoader
 
         return match ($extension) {
             'yaml', 'yml' => Yaml::parseFile($path),
-            'json' => json_decode(file_get_contents($path), true),
+            'json' => json_decode((string) file_get_contents($path), true),
             default => throw new \Exception("Unsupported config format: {$extension}")
         };
     }
 
+    /**
+     * @param array<int, string> $paths
+     * @return array<string, mixed>
+     */
     public function loadMultiple(array $paths): array
     {
         $merged = [];

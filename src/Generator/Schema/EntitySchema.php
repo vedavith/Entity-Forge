@@ -4,8 +4,10 @@ namespace EntityForge\Generator\Schema;
 
 class EntitySchema
 {
+    /** @var array<string, mixed> */
     private array $config;
 
+    /** @param array<string, mixed> $config */
     public function __construct(array $config)
     {
         $this->config = $config;
@@ -39,7 +41,8 @@ class EntitySchema
         return null;
     }
 
-public function getFields(): array
+    /** @return array<string, string> */
+    public function getFields(): array
     {
         $fields = $this->config['fields'] ?? [];
 
@@ -56,11 +59,13 @@ public function getFields(): array
         return $fields;
     }
 
+    /** @return array<string, mixed> */
     public function getRelations(): array
     {
         return $this->config['relations'] ?? [];
     }
 
+    /** @return array<int, mixed> */
     public function getIndexes(): array
     {
         return $this->config['indexes'] ?? [];

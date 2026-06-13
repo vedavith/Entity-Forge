@@ -7,9 +7,11 @@ use Exception;
 
 class TenantConnectionResolver
 {
+    /** @var array<string, Connection> */
     private static array $connections = [];
 
     /**
+     * @param array<string, mixed> $config
      * @throws Exception
      */
     public static function resolve(array $config): Connection

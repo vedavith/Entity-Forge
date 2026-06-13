@@ -7,6 +7,7 @@ use EntityForge\Database\MigrationRunner;
 
 class TenantProvisioner
 {
+    /** @param array<string, mixed> $config */
     public function __construct(private array $config) {}
 
     public function create(string $tenantId): void
@@ -36,6 +37,7 @@ class TenantProvisioner
         $this->dropDatabase($dbConfig, $dbName);
     }
 
+    /** @param array<string, mixed> $config */
     protected function getRootPdo(array $config): \PDO
     {
         $dsn = sprintf('%s:host=%s;port=%s', $config['driver'], $config['host'], $config['port']);
@@ -47,11 +49,13 @@ class TenantProvisioner
         );
     }
 
+    /** @param array<string, mixed> $config */
     private function createDatabase(array $config, string $dbName): void
     {
         $this->getRootPdo($config)->exec("CREATE DATABASE IF NOT EXISTS {$dbName}");
     }
 
+    /** @param array<string, mixed> $config */
     private function dropDatabase(array $config, string $dbName): void
     {
         $this->getRootPdo($config)->exec("DROP DATABASE IF EXISTS {$dbName}");

@@ -4,8 +4,11 @@ namespace EntityForge\Core;
 
 class Container
 {
+    /** @var array<string, callable(Container): mixed> */
     private array $bindings   = [];
+    /** @var array<string, callable(Container): mixed> */
     private array $singletons = [];
+    /** @var array<string, mixed> */
     private array $instances  = [];
 
     public function bind(string $abstract, callable $factory): void
