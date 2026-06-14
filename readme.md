@@ -165,6 +165,8 @@ $response->send();
 | `migrate:rollback` | `--dry-run` | Roll back the last migration batch |
 | `migrate:all-tenants` | `--tenant <id>`, `--parallel N`, `--dry-run` | Run pending migrations on every active tenant DB |
 | `tenant:create <id>` | `--name` | Onboard a new tenant |
+| `make:middleware <Name>` | `--auth`, `--output` | Scaffold a middleware class (use `--auth` for `AuthMiddlewareInterface` stub) |
+| `make:controller <Name>` | `--output` | Scaffold a controller class with CRUD stubs |
 
 `generate:all` uses a single `EntityGenerator` instance to guarantee monotonically ordered migration timestamps within a session.
 
@@ -496,8 +498,6 @@ Auth runs before tenant resolution if the tenant ID is embedded in the token. Re
 
 ## Roadmap
 
-- [ ] Session-based tenant resolver
-- [ ] Artisan-style scaffolding for middleware and controllers
 - [ ] Official Packagist release
 
 ---
