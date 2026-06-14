@@ -8,7 +8,9 @@ This document tracks deliberate gaps and deferred work in the current codebase.
 
 **SubdomainTenantResolver minimum parts are configurable.** The default requires 3-part hosts (`acme.example.com`). Set `tenancy.subdomain_min_parts: 2` in `application.yaml` to support two-part hosts like `acme.io`. Single-part hosts (e.g. `localhost`) always throw regardless of this setting.
 
-**`JwtTenantResolver` is implemented.** Decodes and verifies a Bearer JWT, extracts a configurable claim (default: `tenant_id`). Configure via `tenancy.jwt_public_key`, `tenancy.jwt_algorithm`, and `tenancy.jwt_tenant_claim`. Session-based resolution is not yet implemented — add a `SessionTenantResolver` following the same pattern.
+**`JwtTenantResolver` is implemented.** Decodes and verifies a Bearer JWT, extracts a configurable claim (default: `tenant_id`). Configure via `tenancy.jwt_public_key`, `tenancy.jwt_algorithm`, and `tenancy.jwt_tenant_claim`.
+
+**`SessionTenantResolver` is implemented.** Reads tenant from `$context['session']` when present (testable path) or falls back to PHP `$_SESSION`. Configure the key via `tenancy.session_key` (default: `tenant_id`). Use `tenancy.resolver: session` in `application.yaml`.
 
 ---
 
