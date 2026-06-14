@@ -35,9 +35,11 @@ PHP;
     private function mapType(string $type): string
     {
         return match ($type) {
-            'int' => 'int',
-            'string' => 'string',
-            default => 'mixed'
+            'int'                    => 'int',
+            'float'                  => 'float',
+            'bool'                   => 'bool',
+            'string', 'text', 'datetime' => 'string',
+            default                  => 'mixed',
         };
     }
 

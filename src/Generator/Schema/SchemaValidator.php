@@ -28,7 +28,7 @@ class SchemaValidator
                 throw new \InvalidArgumentException("Invalid field name: {$field}");
             }
 
-            if (!in_array($type, ['int', 'string', 'float', 'bool'], true)) {
+            if (!in_array($type, ['int', 'string', 'float', 'bool', 'text', 'datetime'], true)) {
                 throw new \InvalidArgumentException("Unsupported field type: {$type} for {$field}");
             }
         }

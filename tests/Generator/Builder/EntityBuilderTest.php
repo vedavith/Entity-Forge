@@ -54,11 +54,51 @@ class EntityBuilderTest extends TestCase
         $this->assertStringContainsString('public string $name', $code);
     }
 
+    public function test_float_type_maps_to_float(): void
+    {
+        $code = $this->builder->build($this->schema([
+            'entity' => 'Product',
+            'fields' => ['price' => 'float'],
+        ]));
+
+        $this->assertStringContainsString('public float $price', $code);
+    }
+
+    public function test_bool_type_maps_to_bool(): void
+    {
+        $code = $this->builder->build($this->schema([
+            'entity' => 'Product',
+            'fields' => ['active' => 'bool'],
+        ]));
+
+        $this->assertStringContainsString('public bool $active', $code);
+    }
+
+    public function test_text_type_maps_to_string(): void
+    {
+        $code = $this->builder->build($this->schema([
+            'entity' => 'Post',
+            'fields' => ['body' => 'text'],
+        ]));
+
+        $this->assertStringContainsString('public string $body', $code);
+    }
+
+    public function test_datetime_type_maps_to_string(): void
+    {
+        $code = $this->builder->build($this->schema([
+            'entity' => 'Event',
+            'fields' => ['starts_at' => 'datetime'],
+        ]));
+
+        $this->assertStringContainsString('public string $starts_at', $code);
+    }
+
     public function test_unknown_type_maps_to_mixed(): void
     {
         $code = $this->builder->build($this->schema([
             'entity' => 'Blob',
-            'fields' => ['data' => 'float'],
+            'fields' => ['data' => 'json'],
         ]));
 
         $this->assertStringContainsString('public mixed $data', $code);
