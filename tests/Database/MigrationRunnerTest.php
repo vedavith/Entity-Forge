@@ -272,6 +272,49 @@ class MigrationRunnerTest extends TestCase
         $this->runner->rollback($this->tmpDir);
     }
 
+    public function test_run_throws_when_show_columns_returns_false(): void
+    {
+        $this->pdo->allows('exec')->with(Mockery::pattern('/CREATE TABLE IF NOT EXISTS migrations/'))->once();
+
+        $this->pdo->allows('query')->with("SHOW COLUMNS FROM migrations LIKE 'batch'")->andReturn(false);
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessageMatches('/Failed to check migrations table schema/');
+
+        $this->runner->run($this->tmpDir);
+    }
+
+    public function test_run_throws_when_select_migration_returns_false(): void
+    {
+        file_put_contents($this->tmpDir . '/0001_create_users.up.sql', 'CREATE TABLE users (id INT);');
+
+        $this->pdo->allows('exec')->with(Mockery::pattern('/CREATE TABLE IF NOT EXISTS migrations/'))->once();
+
+        $colStmt = Mockery::mock(PDOStatement::class);
+        $colStmt->allows('fetch')->andReturn(['Field' => 'batch']);
+        $this->pdo->allows('query')->with("SHOW COLUMNS FROM migrations LIKE 'batch'")->andReturn($colStmt);
+
+        $this->pdo->allows('query')->with('SELECT migration FROM migrations')->andReturn(false);
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessageMatches('/Failed to query migrations table/');
+
+        $this->runner->run($this->tmpDir);
+    }
+
+    public function test_dry_run_handles_database_error_gracefully(): void
+    {
+        file_put_contents($this->tmpDir . '/0001_create_users.up.sql', 'CREATE TABLE users (id INT);');
+
+        // getExecutedSafe catches when SELECT returns false, falls back to []
+        $this->pdo->allows('query')->with('SELECT migration FROM migrations')->andReturn(false);
+        $this->pdo->shouldNotReceive('exec');
+
+        $this->expectOutputRegex('/\[DRY RUN\] Would execute: 0001_create_users\.up\.sql/');
+
+        $this->runner->run($this->tmpDir, true);
+    }
+
     public function test_rollback_throws_on_sql_failure(): void
     {
         $migration = '0001_fail.up.sql';

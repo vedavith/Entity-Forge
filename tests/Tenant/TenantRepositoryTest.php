@@ -78,6 +78,27 @@ class TenantRepositoryTest extends TestCase
 
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
+    public function test_all_throws_when_query_returns_false(): void
+    {
+        $pdo = Mockery::mock(PDO::class);
+        $pdo->allows('query')
+            ->with('SELECT * FROM tenants')
+            ->andReturn(false);
+
+        /** @var MockInterface&Connection $conn */
+        $conn = Mockery::mock('overload:' . Connection::class);
+        $conn->allows('getPdo')->andReturn($pdo);
+
+        $repo = new TenantRepository($this->dbConfig());
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessageMatches('/Failed to query tenants/');
+
+        $repo->all();
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_all_active_returns_only_active_tenants(): void
     {
         $rows = [['id' => 1, 'tenant_id' => 'acme', 'name' => 'Acme', 'status' => 'active']];

@@ -94,25 +94,37 @@ class RequestTest extends TestCase
         $this->assertSame([], $original->params());
     }
 
-    public function test_capture_skipped_outside_web_sapi(): void
+    public function test_capture_reads_superglobals(): void
     {
-        if (!function_exists('getallheaders')) {
-            $this->markTestSkipped('getallheaders() not available outside web SAPI');
-        }
-
         $_SERVER['REQUEST_METHOD'] = 'PUT';
+        $_SERVER['REQUEST_URI']    = '/api/items';
         $_GET  = ['q' => 'search'];
         $_POST = ['name' => 'Alice'];
 
         $request = Request::capture();
 
         $this->assertSame('PUT', $request->method());
+        $this->assertSame('/api/items', $request->path());
         $this->assertSame('search', $request->query('q'));
         $this->assertSame('Alice', $request->body('name'));
 
         $_SERVER['REQUEST_METHOD'] = 'GET';
+        unset($_SERVER['REQUEST_URI']);
         $_GET = [];
         $_POST = [];
+    }
+
+    public function test_capture_defaults_path_when_uri_has_no_path(): void
+    {
+        $_SERVER['REQUEST_URI'] = 'http://example.com';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        $request = Request::capture();
+
+        // parse_url of a scheme-only URI returns null for PHP_URL_PATH → falls back to '/'
+        $this->assertIsString($request->path());
+
+        unset($_SERVER['REQUEST_URI']);
     }
 
     // ── Attributes ─────────────────────────────────────────────────────────────

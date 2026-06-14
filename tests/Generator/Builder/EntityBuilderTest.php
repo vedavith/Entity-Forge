@@ -131,6 +131,28 @@ class EntityBuilderTest extends TestCase
         $this->assertStringContainsString('use App\Entity\Order', $code);
     }
 
+    public function test_pluralizes_consonant_y_to_ies(): void
+    {
+        $code = $this->builder->build($this->schema([
+            'entity' => 'User',
+            'fields' => [],
+            'relations' => ['hasMany' => ['Category' => 'user_id']],
+        ]));
+
+        $this->assertStringContainsString('public array $categories = []', $code);
+    }
+
+    public function test_pluralizes_sibilant_ending_to_es(): void
+    {
+        $code = $this->builder->build($this->schema([
+            'entity' => 'User',
+            'fields' => [],
+            'relations' => ['hasMany' => ['Bus' => 'user_id']],
+        ]));
+
+        $this->assertStringContainsString('public array $buses = []', $code);
+    }
+
     public function test_generates_valid_php_opening(): void
     {
         $code = $this->builder->build($this->schema(['entity' => 'Foo', 'fields' => []]));

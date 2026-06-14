@@ -124,6 +124,56 @@ class ConsoleCommandsTest extends TestCase
         $this->assertStringContainsString('No entity configs found', $tester->getDisplay());
     }
 
+    public function test_generate_all_skips_cross_batch_dependency(): void
+    {
+        $tmp = sys_get_temp_dir() . '/ef_con_' . uniqid();
+        mkdir($tmp . '/config/entities', 0755, true);
+        // Post references ExternalUser which is NOT in the batch — the sort should skip it
+        file_put_contents($tmp . '/config/entities/Post.json', json_encode([
+            'entity' => 'Post',
+            'fields' => ['id' => 'int', 'external_user_id' => 'int'],
+            'relations' => ['belongsTo' => ['ExternalUser' => 'external_user_id']],
+        ]));
+        $origDir = getcwd();
+        chdir($tmp);
+
+        $tester = new CommandTester(new GenerateAllCommand());
+        $code = $tester->execute([]);
+
+        chdir($origDir);
+        $this->removeDir($tmp);
+
+        $this->assertSame(0, $code);
+        $this->assertStringContainsString('Generated Post', $tester->getDisplay());
+    }
+
+    public function test_generate_all_fails_on_circular_dependency(): void
+    {
+        $tmp = sys_get_temp_dir() . '/ef_con_' . uniqid();
+        mkdir($tmp . '/config/entities', 0755, true);
+        file_put_contents($tmp . '/config/entities/Alpha.json', json_encode([
+            'entity' => 'Alpha',
+            'fields' => ['id' => 'int'],
+            'relations' => ['belongsTo' => ['Beta' => 'beta_id']],
+        ]));
+        file_put_contents($tmp . '/config/entities/Beta.json', json_encode([
+            'entity' => 'Beta',
+            'fields' => ['id' => 'int'],
+            'relations' => ['belongsTo' => ['Alpha' => 'alpha_id']],
+        ]));
+        $origDir = getcwd();
+        chdir($tmp);
+
+        $tester = new CommandTester(new GenerateAllCommand());
+        $code = $tester->execute([]);
+
+        chdir($origDir);
+        $this->removeDir($tmp);
+
+        $this->assertSame(1, $code);
+        $this->assertStringContainsString('Circular dependency', $tester->getDisplay());
+    }
+
     public function test_generate_all_generates_all_entities(): void
     {
         $tmp = sys_get_temp_dir() . '/ef_con_' . uniqid();

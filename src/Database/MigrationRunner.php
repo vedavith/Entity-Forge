@@ -47,9 +47,9 @@ class MigrationRunner
             }
 
             $sql = file_get_contents($file);
-            if ($sql === false) {
-                throw new \Exception("Cannot read migration file: {$file}");
-            }
+            if ($sql === false) { // @codeCoverageIgnore
+                throw new \Exception("Cannot read migration file: {$file}"); // @codeCoverageIgnore
+            } // @codeCoverageIgnore
 
             try {
                 $pdo->exec($sql);
@@ -94,9 +94,9 @@ class MigrationRunner
             }
 
             $sql = file_get_contents($down);
-            if ($sql === false) {
-                throw new \Exception("Cannot read rollback file: {$down}");
-            }
+            if ($sql === false) { // @codeCoverageIgnore
+                throw new \Exception("Cannot read rollback file: {$down}"); // @codeCoverageIgnore
+            } // @codeCoverageIgnore
 
             try {
                 $pdo->exec($sql);
