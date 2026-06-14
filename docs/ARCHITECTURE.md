@@ -23,6 +23,8 @@ src/
 ├── Console/
 │   ├── GenerateCommand.php       — generate single entity from JSON schema
 │   ├── GenerateAllCommand.php    — generate all entities in config/entities/
+│   ├── MakeMiddlewareCommand.php — scaffold a middleware class (--auth for AuthMiddlewareInterface stub)
+│   ├── MakeControllerCommand.php — scaffold a controller class with CRUD stubs
 │   ├── MigrateCommand.php        — run pending migrations (main DB)
 │   ├── MigrateAllTenantsCommand.php — run migrations on every tenant DB
 │   ├── RollbackCommand.php       — rollback last migration batch
@@ -49,7 +51,8 @@ src/
 │   ├── Router.php                — GET/POST/PUT/DELETE route dispatch
 │   ├── Pipeline.php              — immutable middleware chain runner
 │   └── Middleware/
-│       └── MiddlewareInterface.php — handle(Request, callable): Response
+│       ├── MiddlewareInterface.php     — handle(Request, callable): Response
+│       └── AuthMiddlewareInterface.php — marker interface for auth middleware; attach identity via withAttribute()
 │
 ├── Repository/
 │   └── BaseRepository.php        — auto-scoped CRUD + transactions
@@ -67,7 +70,8 @@ src/
     └── Resolver/
         ├── HeaderTenantResolver.php    — reads tenant from a request header
         ├── SubdomainTenantResolver.php — extracts tenant from subdomain
-        └── JwtTenantResolver.php       — verifies Bearer JWT, extracts tenant claim
+        ├── JwtTenantResolver.php       — verifies Bearer JWT, extracts tenant claim
+        └── SessionTenantResolver.php   — reads tenant from injected session data or $_SESSION
 ```
 
 ---
@@ -137,6 +141,7 @@ Configured via `tenancy.resolver` in `application.yaml`.
 | `header` | `header_key` (default: `X-Tenant-ID`) | Reads the named HTTP header from the request context |
 | `subdomain` | `subdomain_depth`, `subdomain_min_parts` (default: 3) | Extracts the leading subdomain from the `host` context key. Set `subdomain_min_parts: 2` for two-part hosts like `acme.io` |
 | `jwt` | `jwt_public_key`, `jwt_algorithm` (default: `RS256`), `jwt_tenant_claim` (default: `tenant_id`) | Decodes and verifies a Bearer JWT from the `Authorization` header, then extracts the named claim |
+| `session` | `session_key` (default: `tenant_id`) | Reads tenant from `$context['session']` (testable, injected) or falls back to PHP `$_SESSION` |
 
 Example for JWT:
 
@@ -360,14 +365,16 @@ Output:
 
 ## CLI Commands
 
-| Command                  | Key options                        | Description                                          |
-|--------------------------|------------------------------------|------------------------------------------------------|
-| `generate <Entity>`      |                                    | Generate entity + repository from JSON schema        |
-| `generate:all`           | `--config-dir`                     | Generate all schemas in `config/entities/`           |
-| `migrate`                | `--dry-run`                        | Run pending migrations on the main database          |
-| `migrate:rollback`       | `--dry-run`                        | Roll back the last migration batch                   |
-| `migrate:all-tenants`    | `--dry-run`, `--parallel N`        | Run pending migrations on every active tenant DB     |
-| `tenant:create <id>`     | `--name`                           | Onboard a new tenant                                 |
+| Command                    | Key options                        | Description                                          |
+|----------------------------|------------------------------------|------------------------------------------------------|
+| `generate <Entity>`        | `--migration`                      | Generate entity + repository from JSON schema        |
+| `generate:all`             | `--config-dir`                     | Generate all schemas in `config/entities/`           |
+| `make:middleware <Name>`   | `--auth`, `--output`               | Scaffold a middleware class (`--auth` for `AuthMiddlewareInterface` stub) |
+| `make:controller <Name>`   | `--output`                         | Scaffold a controller class with CRUD stubs          |
+| `migrate`                  | `--dry-run`                        | Run pending migrations on the main database          |
+| `migrate:rollback`         | `--dry-run`                        | Roll back the last migration batch                   |
+| `migrate:all-tenants`      | `--dry-run`, `--parallel N`        | Run pending migrations on every active tenant DB     |
+| `tenant:create <id>`       | `--name`                           | Onboard a new tenant                                 |
 
 ---
 

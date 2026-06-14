@@ -3,7 +3,7 @@
 [![CI](https://github.com/vedavith/Entity-Forge/actions/workflows/php.yml/badge.svg)](https://github.com/vedavith/Entity-Forge/actions/workflows/php.yml)
 [![codecov](https://codecov.io/gh/vedavith/Entity-Forge/graph/badge.svg)](https://codecov.io/gh/vedavith/Entity-Forge)
 
-**EntityForge** is a configuration-driven, multi-tenant SaaS framework built in PHP 8.4.
+**EntityForge** is a configuration-driven, multi-tenant SaaS framework built in PHP 8.3+.
 
 It provides everything needed to build a scalable SaaS backend: JSON-driven code generation, two tenant isolation strategies, automated migrations, an HTTP routing layer with middleware pipeline, and a dependency injection container — all wired together through a single boot cycle.
 
@@ -24,7 +24,7 @@ It provides everything needed to build a scalable SaaS backend: JSON-driven code
 
 ## Requirements
 
-- PHP 8.4+
+- PHP 8.3+
 - MySQL (PDO)
 - Composer
 
@@ -165,6 +165,8 @@ $response->send();
 | `migrate:rollback` | `--dry-run` | Roll back the last migration batch |
 | `migrate:all-tenants` | `--tenant <id>`, `--parallel N`, `--dry-run` | Run pending migrations on every active tenant DB |
 | `tenant:create <id>` | `--name` | Onboard a new tenant |
+| `make:middleware <Name>` | `--auth`, `--output` | Scaffold a middleware class (use `--auth` for `AuthMiddlewareInterface` stub) |
+| `make:controller <Name>` | `--output` | Scaffold a controller class with CRUD stubs |
 
 `generate:all` uses a single `EntityGenerator` instance to guarantee monotonically ordered migration timestamps within a session.
 
@@ -207,6 +209,7 @@ Configure via `tenancy.resolver` in `application.yaml`:
 | `header` | `header_key` (default: `X-Tenant-ID`) | Reads the named HTTP header from the request context |
 | `subdomain` | `subdomain_depth`, `subdomain_min_parts` (default: 3) | Extracts the leading subdomain from the `host` context key (`acme.example.com` → `acme`). Set `subdomain_min_parts: 2` for two-part hosts like `acme.io` |
 | `jwt` | `jwt_public_key`, `jwt_algorithm` (default: `RS256`), `jwt_tenant_claim` (default: `tenant_id`) | Decodes and verifies a Bearer JWT from the `Authorization` header, then extracts the named claim |
+| `session` | `session_key` (default: `tenant_id`) | Reads the tenant ID from `$context['session']` (injected) or falls back to PHP `$_SESSION` |
 
 Add custom resolvers by implementing `TenantResolverInterface` and registering them in `TenantResolverFactory`.
 
@@ -496,8 +499,6 @@ Auth runs before tenant resolution if the tenant ID is embedded in the token. Re
 
 ## Roadmap
 
-- [ ] Session-based tenant resolver
-- [ ] Artisan-style scaffolding for middleware and controllers
 - [ ] Official Packagist release
 
 ---
