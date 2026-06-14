@@ -62,6 +62,8 @@ This document tracks deliberate gaps and deferred work in the current codebase.
 
 **Relations and indexes are supported in the generator.** `MigrationBuilder` emits `FOREIGN KEY` constraints from `relations.belongsTo` and `INDEX` / `UNIQUE INDEX` clauses from `indexes`. Both sections are optional and validated by `SchemaValidator`.
 
+**Relations generate typed entity properties.** `EntityBuilder` converts `belongsTo` into `public ?RelatedClass $property = null;` and `hasMany` into `/** @var RelatedClass[] */ public array $properties = [];`, each with the correct `use App\Entity\RelatedClass;` import injected automatically. Pluralisation handles common irregular forms (`category → categories`, `address → addresses`).
+
 ```json
 "relations": { "belongsTo": { "User": "user_id" } },
 "indexes": [

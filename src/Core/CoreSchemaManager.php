@@ -9,6 +9,7 @@ class CoreSchemaManager
 {
     private PDO $pdo;
 
+    /** @param array<string, mixed> $config */
     public function __construct(array $config)
     {
         $this->pdo = (new Connection($config['database']))->getPdo();
@@ -22,7 +23,7 @@ class CoreSchemaManager
     }
 
     /**
-     * Define all core tables here
+     * @return array<int, string>
      */
     private function definitions(): array
     {

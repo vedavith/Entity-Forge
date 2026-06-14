@@ -35,7 +35,7 @@ class GenerateCommand extends Command
             return Command::FAILURE;
         }
 
-        $config = json_decode(file_get_contents($configPath), true);
+        $config = json_decode((string) file_get_contents($configPath), true);
 
         if (!$config) {
             $output->writeln("<error>Invalid JSON config</error>");

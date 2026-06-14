@@ -206,6 +206,14 @@ $request->param('id');    // single named parameter
 $request->params();       // all parameters as array
 ```
 
+Arbitrary per-request data (resolved user identity, trace IDs, etc.) is stored as attributes — set by middleware, consumed by handlers:
+
+```php
+$request->withAttribute('user', $user);   // returns new immutable instance
+$request->getAttribute('user');           // null if absent
+$request->getAttribute('user', 'guest'); // with default
+```
+
 ### Response
 
 Three output modes: immutable builder, streaming, and legacy direct-echo.
@@ -243,6 +251,14 @@ $response = $pipeline->run($request, fn(Request $req): Response => $router->disp
 ```
 
 Middleware is executed outermost-first. `$next` is a `callable(Request): Response`.
+
+### Auth integration
+
+EntityForge does not ship an auth implementation. `AuthMiddlewareInterface` (extends `MiddlewareInterface`) is the designated integration point — implement it against any provider and attach the resolved identity via `$request->withAttribute('user', $identity)`. Scaffold the stub with:
+
+```bash
+php bin/ef make:middleware FirebaseAuthMiddleware --auth
+```
 
 ### Router
 
@@ -333,6 +349,10 @@ Output:
 - `app/Entity/Order.php`
 - `app/Repository/OrderRepository.php`
 - `database/migrations/{timestamp}_create_orders_table.up.sql` + `.down.sql`
+
+`EntityBuilder` converts relation entries into typed properties on the entity class, not stub methods:
+- `belongsTo` → `public ?User $user = null;` with `use App\Entity\User;`
+- `hasMany` → `/** @var Order[] */ public array $orders = [];` with the corresponding `use`
 
 `generate:all` uses a single `EntityGenerator` instance to guarantee monotonically ordered migration timestamps within a session.
 

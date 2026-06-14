@@ -3,6 +3,7 @@
 namespace Tests\Tenant;
 
 use EntityForge\Tenant\Resolver\HeaderTenantResolver;
+use EntityForge\Tenant\Resolver\SessionTenantResolver;
 use EntityForge\Tenant\Resolver\SubdomainTenantResolver;
 use EntityForge\Tenant\TenantResolverFactory;
 use Exception;
@@ -55,6 +56,23 @@ class TenantResolverFactoryTest extends TestCase
 
         $tenantId = $resolver->resolve(['host' => 'acme.example.com']);
         $this->assertSame('acme', $tenantId);
+    }
+
+    public function test_creates_session_resolver(): void
+    {
+        $resolver = TenantResolverFactory::create(['tenancy' => ['resolver' => 'session']]);
+
+        $this->assertInstanceOf(SessionTenantResolver::class, $resolver);
+    }
+
+    public function test_session_resolver_uses_configured_key(): void
+    {
+        $resolver = TenantResolverFactory::create([
+            'tenancy' => ['resolver' => 'session', 'session_key' => 'current_tenant'],
+        ]);
+
+        $tenantId = $resolver->resolve(['session' => ['current_tenant' => 'corp']]);
+        $this->assertSame('corp', $tenantId);
     }
 
     public function test_throws_for_unsupported_resolver_type(): void

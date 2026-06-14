@@ -17,10 +17,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ["8.4"]
+        php: ["8.3", "8.4", "8.5"]
 
     env:
-      # Collect coverage only on PRs and pushes to main — keeps all other runs fast
+      # Collect coverage only on 8.4 on PRs and pushes to main — keeps all other runs fast
       LOG_COVERAGE: "${{ fromJSON('{true: \"1\", false: \"\"}')[matrix.php == '8.4' && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))] }}"
 
     steps:

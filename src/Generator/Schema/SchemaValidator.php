@@ -4,6 +4,7 @@ namespace EntityForge\Generator\Schema;
 
 class SchemaValidator
 {
+    /** @param array<string, mixed> $config */
     public function validate(array $config): void
     {
         // Entity name is required
@@ -27,7 +28,7 @@ class SchemaValidator
                 throw new \InvalidArgumentException("Invalid field name: {$field}");
             }
 
-            if (!in_array($type, ['int', 'string', 'float', 'bool'], true)) {
+            if (!in_array($type, ['int', 'string', 'float', 'bool', 'text', 'datetime'], true)) {
                 throw new \InvalidArgumentException("Unsupported field type: {$type} for {$field}");
             }
         }

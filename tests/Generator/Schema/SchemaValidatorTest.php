@@ -80,10 +80,12 @@ class SchemaValidatorTest extends TestCase
         $this->validator->validate([
             'entity' => 'Product',
             'fields' => [
-                'id'     => 'int',
-                'name'   => 'string',
-                'price'  => 'float',
-                'active' => 'bool',
+                'id'         => 'int',
+                'name'       => 'string',
+                'price'      => 'float',
+                'active'     => 'bool',
+                'body'       => 'text',
+                'created_at' => 'datetime',
             ],
         ]);
         $this->assertTrue(true);

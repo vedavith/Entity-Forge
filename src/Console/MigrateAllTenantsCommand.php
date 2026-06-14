@@ -96,6 +96,9 @@ class MigrateAllTenantsCommand extends Command
         return $failed > 0 ? Command::FAILURE : Command::SUCCESS;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function migrateTenant(
         string $tenantId,
         array $config,

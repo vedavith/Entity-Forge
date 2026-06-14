@@ -6,8 +6,10 @@ class Response
 {
     private int $status = 200;
     private string $body = '';
+    /** @var array<string, string> */
     private array $headers = [];
 
+    /** @param array<string, mixed> $data */
     public function withJson(array $data, int $status = 200): self
     {
         $clone = clone $this;
@@ -41,6 +43,7 @@ class Response
         return $this->body;
     }
 
+    /** @return array<string, string> */
     public function getHeaders(): array
     {
         return $this->headers;
@@ -64,6 +67,7 @@ class Response
         $body();
     }
 
+    /** @param array<string, mixed> $data */
     public function json(array $data, int $status = 200): void
     {
         http_response_code($status);

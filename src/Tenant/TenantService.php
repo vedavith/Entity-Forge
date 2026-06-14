@@ -6,8 +6,10 @@ class TenantService
 {
     private TenantRepository $repo;
     private TenantProvisioner $provisioner;
+    /** @var array<string, mixed> */
     private array $config;
 
+    /** @param array<string, mixed> $config */
     public function __construct(
         array $config,
         ?TenantRepository $repo = null,

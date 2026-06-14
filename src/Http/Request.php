@@ -4,23 +4,31 @@ namespace EntityForge\Http;
 
 class Request
 {
-
+    /**
+     * @param array<string, string> $headers
+     * @param array<string, mixed> $query
+     * @param array<string, mixed> $body
+     * @param array<string, string> $params
+     * @param array<string, mixed> $attributes
+     */
     public function __construct(
         private array $headers = [],
         private array $query = [],
         private array $body = [],
-        private array|string $method = 'GET',
+        private string $method = 'GET',
         private string $path = '/',
-        private array $params = []
+        private array $params = [],
+        private array $attributes = []
     ) {}
 
     public static function capture(): self
     {
-        $uri = $_SERVER['REQUEST_URI'] ?? '/';
-        $path = parse_url($uri, PHP_URL_PATH) ?? '/';
+        $uri    = $_SERVER['REQUEST_URI'] ?? '/';
+        $parsed = parse_url($uri, PHP_URL_PATH);
+        $path   = is_string($parsed) ? $parsed : '/';
 
         return new self(
-            headers: getallheaders(),
+            headers: getallheaders() ?: [],
             query: $_GET,
             body: $_POST,
             method: $_SERVER['REQUEST_METHOD'] ?? 'GET',
@@ -58,15 +66,29 @@ class Request
         return $this->params[$name] ?? null;
     }
 
+    /** @return array<string, string> */
     public function params(): array
     {
         return $this->params;
     }
 
+    /** @param array<string, string> $params */
     public function withParams(array $params): self
     {
         $clone = clone $this;
         $clone->params = $params;
         return $clone;
+    }
+
+    public function withAttribute(string $key, mixed $value): self
+    {
+        $clone = clone $this;
+        $clone->attributes[$key] = $value;
+        return $clone;
+    }
+
+    public function getAttribute(string $key, mixed $default = null): mixed
+    {
+        return $this->attributes[$key] ?? $default;
     }
 }
