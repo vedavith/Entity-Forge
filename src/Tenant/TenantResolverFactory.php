@@ -4,6 +4,7 @@ namespace EntityForge\Tenant;
 
 use EntityForge\Tenant\Resolver\HeaderTenantResolver;
 use EntityForge\Tenant\Resolver\JwtTenantResolver;
+use EntityForge\Tenant\Resolver\SessionTenantResolver;
 use EntityForge\Tenant\Resolver\SubdomainTenantResolver;
 use Exception;
 
@@ -28,6 +29,9 @@ class TenantResolverFactory
                 $config['tenancy']['jwt_public_key'] ?? '',
                 $config['tenancy']['jwt_algorithm']  ?? 'RS256',
                 $config['tenancy']['jwt_tenant_claim'] ?? 'tenant_id'
+            ),
+            'session' => new SessionTenantResolver(
+                $config['tenancy']['session_key'] ?? 'tenant_id'
             ),
             default => throw new Exception("Unsupported tenant resolver type: {$resolverType}"),
         };
