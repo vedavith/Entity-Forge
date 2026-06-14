@@ -114,4 +114,48 @@ class RequestTest extends TestCase
         $_GET = [];
         $_POST = [];
     }
+
+    // ── Attributes ─────────────────────────────────────────────────────────────
+
+    public function test_with_attribute_returns_new_instance(): void
+    {
+        $request = new Request();
+        $with = $request->withAttribute('user', ['id' => 1]);
+
+        $this->assertNotSame($request, $with);
+    }
+
+    public function test_get_attribute_returns_set_value(): void
+    {
+        $user = ['id' => 42, 'email' => 'test@example.com'];
+        $request = (new Request())->withAttribute('user', $user);
+
+        $this->assertSame($user, $request->getAttribute('user'));
+    }
+
+    public function test_get_attribute_returns_default_when_missing(): void
+    {
+        $request = new Request();
+
+        $this->assertNull($request->getAttribute('user'));
+        $this->assertSame('guest', $request->getAttribute('user', 'guest'));
+    }
+
+    public function test_original_request_unaffected_after_with_attribute(): void
+    {
+        $request = new Request();
+        $request->withAttribute('user', ['id' => 1]);
+
+        $this->assertNull($request->getAttribute('user'));
+    }
+
+    public function test_attributes_chain(): void
+    {
+        $request = (new Request())
+            ->withAttribute('user', ['id' => 1])
+            ->withAttribute('role', 'admin');
+
+        $this->assertSame(['id' => 1], $request->getAttribute('user'));
+        $this->assertSame('admin', $request->getAttribute('role'));
+    }
 }

@@ -262,6 +262,11 @@ $request->method();      // 'GET', 'POST', ...
 $request->path();        // '/users/42'
 $request->param('id');   // route parameter injected by Router
 $request->params();      // all route parameters as array
+
+// Arbitrary attributes — set by middleware, read by handlers
+$request->withAttribute('user', $resolvedUser);   // returns new instance
+$request->getAttribute('user');                   // returns value or null
+$request->getAttribute('user', 'guest');          // returns default if missing
 ```
 
 ### Response
@@ -431,6 +436,58 @@ vendor/bin/phpunit
 vendor/bin/phpunit tests/Path/To/SomeTest.php   # single file
 vendor/bin/phpstan analyse                       # static analysis — project runs clean at level 8
 ```
+
+---
+
+## Integrating Auth
+
+EntityForge does not ship an auth implementation — authentication is handled by your chosen provider (Firebase Auth, Auth0, a custom JWT stack, etc.). The framework provides the integration surface.
+
+### 1. Scaffold an auth middleware
+
+```bash
+php bin/ef make:middleware FirebaseAuthMiddleware --auth
+```
+
+This generates `app/Http/Middleware/FirebaseAuthMiddleware.php` implementing `AuthMiddlewareInterface` with annotated steps:
+
+```php
+public function handle(Request $request, callable $next): Response
+{
+    // 1. Extract credentials (e.g. Bearer token)
+    $token = $request->header('Authorization');
+
+    // 2. Verify with your provider
+    $user = $this->firebaseAuth->verifyIdToken($token);
+
+    // 3. Attach the identity and pass downstream
+    return $next($request->withAttribute('user', $user));
+
+    // 4. On failure, return early
+    // return (new Response())->withStatus(401)->withJson(['error' => 'Unauthorized']);
+}
+```
+
+### 2. Read the identity in handlers
+
+```php
+$router->get('/me', function (Request $req): Response {
+    $user = $req->getAttribute('user');   // set by auth middleware upstream
+    return (new Response())->withJson($user);
+});
+```
+
+### 3. Wire into the pipeline
+
+```php
+$pipeline = (new Pipeline())
+    ->pipe(new FirebaseAuthMiddleware($firebaseAuth))
+    ->pipe(new TenantMiddleware());
+
+$response = $pipeline->run(Request::capture(), fn($req) => $router->dispatch($req));
+```
+
+Auth runs before tenant resolution if the tenant ID is embedded in the token. Reverse the order if the tenant is resolved from the URL and auth is tenant-scoped.
 
 ---
 

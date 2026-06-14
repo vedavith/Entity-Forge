@@ -67,6 +67,21 @@ class MakeCommandsTest extends TestCase
         $this->assertStringContainsString('Invalid middleware name', $tester->getDisplay());
     }
 
+    public function test_make_middleware_auth_flag_implements_auth_interface(): void
+    {
+        $tester = new CommandTester(new MakeMiddlewareCommand());
+        $tester->execute([
+            'name'     => 'FirebaseAuthMiddleware',
+            '--output' => $this->tmp,
+            '--auth'   => true,
+        ]);
+
+        $content = file_get_contents($this->tmp . '/FirebaseAuthMiddleware.php');
+        $this->assertStringContainsString('implements AuthMiddlewareInterface', $content);
+        $this->assertStringContainsString('use EntityForge\Http\Middleware\AuthMiddlewareInterface', $content);
+        $this->assertStringContainsString('withAttribute', $content);
+    }
+
     // ── make:controller ────────────────────────────────────────────────────────
 
     public function test_make_controller_command_name(): void

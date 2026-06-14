@@ -9,6 +9,7 @@ class Request
      * @param array<string, mixed> $query
      * @param array<string, mixed> $body
      * @param array<string, string> $params
+     * @param array<string, mixed> $attributes
      */
     public function __construct(
         private array $headers = [],
@@ -16,7 +17,8 @@ class Request
         private array $body = [],
         private string $method = 'GET',
         private string $path = '/',
-        private array $params = []
+        private array $params = [],
+        private array $attributes = []
     ) {}
 
     public static function capture(): self
@@ -76,5 +78,17 @@ class Request
         $clone = clone $this;
         $clone->params = $params;
         return $clone;
+    }
+
+    public function withAttribute(string $key, mixed $value): self
+    {
+        $clone = clone $this;
+        $clone->attributes[$key] = $value;
+        return $clone;
+    }
+
+    public function getAttribute(string $key, mixed $default = null): mixed
+    {
+        return $this->attributes[$key] ?? $default;
     }
 }

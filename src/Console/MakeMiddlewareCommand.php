@@ -18,7 +18,8 @@ class MakeMiddlewareCommand extends Command
             ->setName('make:middleware')
             ->setDescription('Scaffold a new middleware class')
             ->addArgument('name', InputArgument::REQUIRED, 'Middleware class name (e.g. AuthMiddleware)')
-            ->addOption('output', null, InputOption::VALUE_OPTIONAL, 'Output directory', 'app/Http/Middleware');
+            ->addOption('output', null, InputOption::VALUE_OPTIONAL, 'Output directory', 'app/Http/Middleware')
+            ->addOption('auth', null, InputOption::VALUE_NONE, 'Scaffold an auth middleware stub (implements AuthMiddlewareInterface)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -31,7 +32,8 @@ class MakeMiddlewareCommand extends Command
             return Command::FAILURE;
         }
 
-        $code = (new MiddlewareBuilder())->build($name);
+        $builder = new MiddlewareBuilder();
+        $code = $input->getOption('auth') ? $builder->buildAuth($name) : $builder->build($name);
         $path = "{$outputDir}/{$name}.php";
 
         (new FileWriter())->write($path, $code);

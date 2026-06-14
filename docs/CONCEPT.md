@@ -62,11 +62,14 @@ Executes `.up.sql` files in filename order, records each in a `migrations` table
 ## Pipeline
 An immutable middleware chain. Each `pipe()` returns a new `Pipeline` instance. `run(Request, callable): Response` processes the chain outermost-first, then calls the destination handler. Middleware implements `MiddlewareInterface::handle(Request, callable): Response`.
 
+## AuthMiddlewareInterface
+A marker interface extending `MiddlewareInterface` that designates a middleware as the auth integration point. Implementations authenticate the request via any external provider and attach the resolved identity with `$request->withAttribute('user', $identity)` before calling `$next`. EntityForge does not implement auth; it defines where auth hooks in.
+
 ## Router
 A FastRoute-backed request dispatcher. Register handlers with `get()`, `post()`, `put()`, `delete()`. Paths support `{name}` parameter segments — extracted values are available via `$request->param('name')` and `$request->params()`. `dispatch(Request): Response` returns `404 Not Found` for unregistered routes and `405 Method Not Allowed` for method mismatches. Routes match in registration order.
 
 ## Request
-An immutable value object representing an HTTP request. Constructed directly or captured from PHP superglobals via `Request::capture()`. Provides `header()`, `query()`, `body()`, `method()`, `path()`, `param()`, and `params()`. Route parameters are attached by the Router via `withParams()` before the handler is called.
+An immutable value object representing an HTTP request. Constructed directly or captured from PHP superglobals via `Request::capture()`. Provides `header()`, `query()`, `body()`, `method()`, `path()`, `param()`, and `params()`. Route parameters are attached by the Router via `withParams()` before the handler is called. Arbitrary per-request data (resolved user, trace IDs) is stored as attributes via `withAttribute(key, value)` (returns a new instance) and read with `getAttribute(key, default)`.
 
 ## Response
 A tri-mode HTTP response. The immutable builder path (`withJson`, `withStatus`, `withHeader`, `send`) is used by the Pipeline and Router. `stream(callable)` sends headers then delegates output to the caller for chunk-by-chunk streaming without buffering. The legacy `json()` method echoes directly and is kept for backwards compatibility.
