@@ -4,7 +4,7 @@
 The boot entry point. Loads and merges YAML config, validates required keys, runs `CoreSchemaManager`, registers core bindings in the `Container`, and optionally resolves the current tenant. Pass `false` as the second argument to `boot()` to skip tenant resolution (used by CLI commands). Access the container via `getContainer()`.
 
 ## Entity
-A configuration-defined model described by a JSON schema in `config/entities/`. Drives generation of a PHP class, a repository, and SQL migration files.
+A configuration-defined model described by a JSON schema in `config/entities/`. Drives generation of a PHP class, a repository, and SQL migration files. Relation entries in the schema become typed properties on the generated class: `belongsTo` entries produce a nullable typed property (`public ?User $user = null;`), `hasMany` entries produce a typed array property (`/** @var Order[] */ public array $orders = [];`). Both include the appropriate `use` import.
 
 ## Repository
 A data-access layer that auto-scopes queries to the current tenant. Generated repositories extend `BaseRepository` and inherit CRUD methods, transaction support, and tenant scoping. Never reuse a repository instance across tenant switches.

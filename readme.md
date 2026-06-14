@@ -81,7 +81,23 @@ database:
 }
 ```
 
-`relations.belongsTo` emits a `CONSTRAINT fk_… FOREIGN KEY` clause. `indexes` emits `INDEX` or `UNIQUE INDEX` clauses. Both are optional.
+`relations.belongsTo` emits a `CONSTRAINT fk_… FOREIGN KEY` clause in the migration and a typed nullable property on the entity class. `indexes` emits `INDEX` or `UNIQUE INDEX` clauses. Both sections are optional.
+
+The generated `app/Entity/Order.php` will contain:
+
+```php
+use App\Entity\User;
+
+class Order
+{
+    // ...fields...
+
+    /** Loaded via user_id */
+    public ?User $user = null;
+}
+```
+
+Populate the property after loading related data — the repository handles the query, the entity holds the result.
 
 ### 3. Generate and migrate
 
@@ -413,6 +429,7 @@ Pass `false` as the second argument to skip tenant resolution — required for C
 composer install
 vendor/bin/phpunit
 vendor/bin/phpunit tests/Path/To/SomeTest.php   # single file
+vendor/bin/phpstan analyse                       # static analysis — project runs clean at level 8
 ```
 
 ---

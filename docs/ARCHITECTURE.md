@@ -334,6 +334,10 @@ Output:
 - `app/Repository/OrderRepository.php`
 - `database/migrations/{timestamp}_create_orders_table.up.sql` + `.down.sql`
 
+`EntityBuilder` converts relation entries into typed properties on the entity class, not stub methods:
+- `belongsTo` → `public ?User $user = null;` with `use App\Entity\User;`
+- `hasMany` → `/** @var Order[] */ public array $orders = [];` with the corresponding `use`
+
 `generate:all` uses a single `EntityGenerator` instance to guarantee monotonically ordered migration timestamps within a session.
 
 ---

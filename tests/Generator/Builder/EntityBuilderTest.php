@@ -64,7 +64,7 @@ class EntityBuilderTest extends TestCase
         $this->assertStringContainsString('public mixed $data', $code);
     }
 
-    public function test_generates_belongs_to_relation_method(): void
+    public function test_generates_belongs_to_relation_property(): void
     {
         $code = $this->builder->build($this->schema([
             'entity' => 'Order',
@@ -72,11 +72,12 @@ class EntityBuilderTest extends TestCase
             'relations' => ['belongsTo' => ['User' => 'user_id']],
         ]));
 
-        $this->assertStringContainsString('function user()', $code);
-        $this->assertStringContainsString('User via user_id', $code);
+        $this->assertStringContainsString('public ?User $user = null', $code);
+        $this->assertStringContainsString('Loaded via user_id', $code);
+        $this->assertStringContainsString('use App\Entity\User', $code);
     }
 
-    public function test_generates_has_many_relation_method(): void
+    public function test_generates_has_many_relation_property(): void
     {
         $code = $this->builder->build($this->schema([
             'entity' => 'User',
@@ -84,8 +85,10 @@ class EntityBuilderTest extends TestCase
             'relations' => ['hasMany' => ['Order' => 'user_id']],
         ]));
 
-        $this->assertStringContainsString('function orders()', $code);
-        $this->assertStringContainsString('Order list via user_id', $code);
+        $this->assertStringContainsString('public array $orders = []', $code);
+        $this->assertStringContainsString('@var Order[]', $code);
+        $this->assertStringContainsString('Loaded via user_id', $code);
+        $this->assertStringContainsString('use App\Entity\Order', $code);
     }
 
     public function test_generates_valid_php_opening(): void
