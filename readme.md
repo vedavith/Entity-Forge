@@ -1,5 +1,8 @@
 # EntityForge
 
+[![CI](https://github.com/vedavith/Entity-Forge/actions/workflows/php.yml/badge.svg)](https://github.com/vedavith/Entity-Forge/actions/workflows/php.yml)
+[![codecov](https://codecov.io/gh/vedavith/Entity-Forge/graph/badge.svg)](https://codecov.io/gh/vedavith/Entity-Forge)
+
 **EntityForge** is a configuration-driven, multi-tenant SaaS framework built in PHP 8.4.
 
 It provides everything needed to build a scalable SaaS backend: JSON-driven code generation, two tenant isolation strategies, automated migrations, an HTTP routing layer with middleware pipeline, and a dependency injection container — all wired together through a single boot cycle.
