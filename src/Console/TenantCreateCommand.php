@@ -30,7 +30,7 @@ class TenantCreateCommand extends Command
         $tenantId = $input->getArgument('tenantId');
         $name = $input->getOption('name') ?? $tenantId;
 
-        $app = new Application(__DIR__ . '/../../config');
+        $app = new Application(getcwd() . '/config');
         $app->boot([], false);
 
         $service = new TenantService($app->getConfig());

@@ -15,18 +15,26 @@ class MigrationBuilder
         $fields    = $schema->getFields();
         $relations = $schema->getRelations();
         $indexes   = $schema->getIndexes();
-        $pk        = $schema->getPrimaryKey();
 
-        $definitions = [];
+        $fkColumns = array_values($relations['belongsTo'] ?? []);
+
+        $definitions = [
+            'id INT AUTO_INCREMENT PRIMARY KEY',
+            'tenant_id VARCHAR(255) NOT NULL',
+        ];
 
         foreach ($fields as $name => $type) {
-            $definitions[] = $this->mapColumn($name, $type, $pk ?? '');
+            if ($name === 'id' || $name === 'tenant_id' || in_array($name, $fkColumns, true)) {
+                continue;
+            }
+            $definitions[] = $this->mapColumn($name, $type);
         }
 
         foreach ($relations['belongsTo'] ?? [] as $refEntity => $fkColumn) {
             $refTable   = strtolower($refEntity) . 's';
             $refPk      = $pkMap[$refEntity] ?? 'id';
             $constraint = "fk_{$table}_{$fkColumn}";
+            $definitions[] = "{$fkColumn} INT NOT NULL";
             $definitions[] = "CONSTRAINT {$constraint} FOREIGN KEY ({$fkColumn}) REFERENCES {$refTable}({$refPk})";
         }
 
@@ -54,19 +62,16 @@ SQL;
         return "DROP TABLE IF EXISTS {$table};";
     }
 
-    private function mapColumn(string $name, string $type, string $pk = 'id'): string
+    private function mapColumn(string $name, string $type): string
     {
         $sqlType = match ($type) {
-            'int' => 'INT',
-            'string' => 'VARCHAR(255)',
-            'float' => 'FLOAT',
-            'bool' => 'BOOLEAN',
-            default => 'TEXT'
+            'int'      => 'INT',
+            'string'   => 'VARCHAR(255)',
+            'float'    => 'FLOAT',
+            'bool'     => 'BOOLEAN',
+            'datetime' => 'DATETIME',
+            default    => 'TEXT'
         };
-
-        if ($name === $pk) {
-            return "{$pk} INT PRIMARY KEY AUTO_INCREMENT";
-        }
 
         return "{$name} {$sqlType}";
     }

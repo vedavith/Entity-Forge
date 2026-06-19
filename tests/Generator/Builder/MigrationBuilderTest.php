@@ -15,9 +15,9 @@ class MigrationBuilderTest extends TestCase
         $this->builder = new MigrationBuilder();
     }
 
-    private function schema(array $fields, string $entity = 'Product'): EntitySchema
+    private function schema(array $fields, string $entity = 'Product', array $extra = []): EntitySchema
     {
-        return new EntitySchema(['entity' => $entity, 'fields' => $fields]);
+        return new EntitySchema(array_merge(['entity' => $entity, 'fields' => $fields], $extra));
     }
 
     public function test_build_up_creates_correct_table_name(): void
@@ -25,6 +25,27 @@ class MigrationBuilderTest extends TestCase
         $sql = $this->builder->buildUp($this->schema([], 'Product'));
 
         $this->assertStringContainsString('CREATE TABLE products', $sql);
+    }
+
+    public function test_build_up_always_includes_id_primary_key(): void
+    {
+        $sql = $this->builder->buildUp($this->schema([]));
+
+        $this->assertStringContainsString('id INT AUTO_INCREMENT PRIMARY KEY', $sql);
+    }
+
+    public function test_build_up_always_includes_tenant_id(): void
+    {
+        $sql = $this->builder->buildUp($this->schema([]));
+
+        $this->assertStringContainsString('tenant_id VARCHAR(255) NOT NULL', $sql);
+    }
+
+    public function test_build_up_does_not_duplicate_id_when_in_schema_fields(): void
+    {
+        $sql = $this->builder->buildUp($this->schema(['id' => 'int']));
+
+        $this->assertEquals(1, substr_count($sql, 'id INT'));
     }
 
     public function test_build_up_maps_int_to_int_column(): void
@@ -55,20 +76,11 @@ class MigrationBuilderTest extends TestCase
         $this->assertStringContainsString('active BOOLEAN', $sql);
     }
 
-    public function test_build_up_maps_id_to_primary_key(): void
+    public function test_build_up_maps_datetime_to_datetime(): void
     {
-        $sql = $this->builder->buildUp($this->schema(['id' => 'int']));
+        $sql = $this->builder->buildUp($this->schema(['date' => 'datetime']));
 
-        $this->assertStringContainsString('id INT PRIMARY KEY AUTO_INCREMENT', $sql);
-    }
-
-    public function test_build_up_unknown_type_maps_to_text(): void
-    {
-        // unknown type falls through match to TEXT via default
-        // float is actually mapped, but testing the column presence
-        $sql = $this->builder->buildUp($this->schema(['note' => 'string']));
-
-        $this->assertStringContainsString('note', $sql);
+        $this->assertStringContainsString('date DATETIME', $sql);
     }
 
     public function test_build_down_drops_correct_table(): void
@@ -85,25 +97,39 @@ class MigrationBuilderTest extends TestCase
         $this->assertStringContainsString('invoices', $sql);
     }
 
-    public function test_build_up_emits_foreign_key_for_belongs_to(): void
+    public function test_build_up_emits_fk_column_and_constraint(): void
     {
         $schema = new EntitySchema([
             'entity'    => 'Order',
-            'fields'    => ['id' => 'int', 'user_id' => 'int'],
+            'fields'    => [],
             'relations' => ['belongsTo' => ['User' => 'user_id']],
         ]);
 
         $sql = $this->builder->buildUp($schema);
 
+        $this->assertStringContainsString('user_id INT NOT NULL', $sql);
         $this->assertStringContainsString('CONSTRAINT fk_orders_user_id', $sql);
         $this->assertStringContainsString('FOREIGN KEY (user_id) REFERENCES users(id)', $sql);
+    }
+
+    public function test_build_up_does_not_duplicate_fk_column_when_in_schema_fields(): void
+    {
+        $schema = new EntitySchema([
+            'entity'    => 'Order',
+            'fields'    => ['user_id' => 'int'],
+            'relations' => ['belongsTo' => ['User' => 'user_id']],
+        ]);
+
+        $sql = $this->builder->buildUp($schema);
+
+        $this->assertEquals(1, substr_count($sql, 'user_id INT'));
     }
 
     public function test_build_up_emits_index(): void
     {
         $schema = new EntitySchema([
             'entity'  => 'Order',
-            'fields'  => ['id' => 'int', 'status' => 'string'],
+            'fields'  => ['status' => 'string'],
             'indexes' => [['columns' => ['status']]],
         ]);
 
@@ -116,7 +142,7 @@ class MigrationBuilderTest extends TestCase
     {
         $schema = new EntitySchema([
             'entity'  => 'User',
-            'fields'  => ['id' => 'int', 'email' => 'string'],
+            'fields'  => ['email' => 'string'],
             'indexes' => [['columns' => ['email'], 'unique' => true]],
         ]);
 
@@ -129,7 +155,7 @@ class MigrationBuilderTest extends TestCase
     {
         $schema = new EntitySchema([
             'entity'  => 'Order',
-            'fields'  => ['id' => 'int', 'user_id' => 'int', 'status' => 'string'],
+            'fields'  => ['status' => 'string'],
             'indexes' => [['columns' => ['user_id', 'status']]],
         ]);
 
@@ -142,13 +168,15 @@ class MigrationBuilderTest extends TestCase
     {
         $schema = new EntitySchema([
             'entity'    => 'OrderItem',
-            'fields'    => ['id' => 'int', 'order_id' => 'int', 'product_id' => 'int'],
+            'fields'    => [],
             'relations' => ['belongsTo' => ['Order' => 'order_id', 'Product' => 'product_id']],
             'indexes'   => [['columns' => ['order_id', 'product_id'], 'unique' => true]],
         ]);
 
         $sql = $this->builder->buildUp($schema);
 
+        $this->assertStringContainsString('order_id INT NOT NULL', $sql);
+        $this->assertStringContainsString('product_id INT NOT NULL', $sql);
         $this->assertStringContainsString('FOREIGN KEY (order_id) REFERENCES orders(id)', $sql);
         $this->assertStringContainsString('FOREIGN KEY (product_id) REFERENCES products(id)', $sql);
         $this->assertStringContainsString('UNIQUE INDEX uix_orderitems_order_id_product_id', $sql);
