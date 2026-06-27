@@ -33,7 +33,7 @@ class MigrateCommand extends Command
 
         $dryRun = (bool) $input->getOption('dry-run');
         $connection = new Connection($config);
-        $runner = new MigrationRunner($connection);
+        $runner = new MigrationRunner($connection, fn(string $msg) => $output->writeln($msg));
 
         try {
             $runner->run('database/migrations', $dryRun);

@@ -1,14 +1,16 @@
 <?php
+
 namespace EntityForge\Generator\Builder;
 
 use EntityForge\Generator\Schema\EntitySchema;
+use EntityForge\Support\Str;
 
 class EntityBuilder
 {
     public function build(EntitySchema $schema): string
     {
         $className = $schema->getEntityName();
-        $fields = $schema->getFields();
+        $fields    = $schema->getFields();
 
         $properties = '';
         foreach ($fields as $name => $type) {
@@ -16,9 +18,8 @@ class EntityBuilder
         }
 
         $relationsCode = $this->buildRelations($schema);
-        $useBlock = $this->buildUseStatements($schema);
-
-        $body = $properties . ($relationsCode !== '' ? "\n{$relationsCode}" : '');
+        $useBlock      = $this->buildUseStatements($schema);
+        $body          = $properties . ($relationsCode !== '' ? "\n{$relationsCode}" : '');
 
         return <<<PHP
 <?php
@@ -35,18 +36,18 @@ PHP;
     private function mapType(string $type): string
     {
         return match ($type) {
-            'int'                    => 'int',
-            'float'                  => 'float',
-            'bool'                   => 'bool',
+            'int'                        => 'int',
+            'float'                      => 'float',
+            'bool'                       => 'bool',
             'string', 'text', 'datetime' => 'string',
-            default                  => 'mixed',
+            default                      => 'mixed',
         };
     }
 
     private function buildUseStatements(EntitySchema $schema): string
     {
         $relations = $schema->getRelations();
-        $entities = [];
+        $entities  = [];
 
         /** @var array<string, string> $belongsTo */
         $belongsTo = $relations['belongsTo'] ?? [];
@@ -75,7 +76,7 @@ PHP;
     private function buildRelations(EntitySchema $schema): string
     {
         $relations = $schema->getRelations();
-        $code = '';
+        $code      = '';
 
         /** @var array<string, string> $belongsTo */
         $belongsTo = $relations['belongsTo'] ?? [];
@@ -88,22 +89,11 @@ PHP;
         /** @var array<string, string> $hasMany */
         $hasMany = $relations['hasMany'] ?? [];
         foreach ($hasMany as $entity => $foreignKey) {
-            $property = $this->pluralize(lcfirst((string) $entity));
+            $property = Str::pluralize(lcfirst((string) $entity));
             $code .= "    /** @var {$entity}[] Loaded via {$foreignKey} */\n";
             $code .= "    public array \${$property} = [];\n";
         }
 
         return $code;
-    }
-
-    private function pluralize(string $word): string
-    {
-        if (str_ends_with($word, 'y') && !preg_match('/[aeiou]y$/i', $word)) {
-            return substr($word, 0, -1) . 'ies';
-        }
-        if (preg_match('/(s|x|z|ch|sh)$/', $word)) {
-            return $word . 'es';
-        }
-        return $word . 's';
     }
 }

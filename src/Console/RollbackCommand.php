@@ -32,7 +32,7 @@ class RollbackCommand extends Command
         $db = $app->getConfig()['database'];
 
         $dryRun = (bool) $input->getOption('dry-run');
-        $runner = new MigrationRunner(new Connection($db));
+        $runner = new MigrationRunner(new Connection($db), fn(string $msg) => $output->writeln($msg));
 
         try {
             $runner->rollback('database/migrations', $dryRun);

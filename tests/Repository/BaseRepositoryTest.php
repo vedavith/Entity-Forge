@@ -160,11 +160,13 @@ class BaseRepositoryTest extends TestCase
             ->andReturn(true);
 
         $this->pdo->allows('prepare')->andReturn($stmt);
+        $this->pdo->allows('lastInsertId')->andReturn('42');
 
         $result = $this->repo('shared')->create(['name' => 'Alice']);
 
         $this->assertArrayHasKey('tenant_id', $result);
         $this->assertSame('acme', $result['tenant_id']);
+        $this->assertSame(42, $result['id']);
     }
 
     public function test_create_database_strategy_does_not_inject_tenant_id(): void
@@ -176,10 +178,12 @@ class BaseRepositoryTest extends TestCase
             ->andReturn(true);
 
         $this->pdo->allows('prepare')->andReturn($stmt);
+        $this->pdo->allows('lastInsertId')->andReturn('7');
 
         $result = $this->repo('database')->create(['name' => 'Alice']);
 
         $this->assertArrayNotHasKey('tenant_id', $result);
+        $this->assertSame(7, $result['id']);
     }
 
     public function test_update_shared_strategy_appends_tenant_clause(): void

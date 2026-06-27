@@ -41,6 +41,13 @@ class MigrationBuilderTest extends TestCase
         $this->assertStringContainsString('tenant_id VARCHAR(255) NOT NULL', $sql);
     }
 
+    public function test_build_up_database_strategy_omits_tenant_id(): void
+    {
+        $sql = $this->builder->buildUp($this->schema([]), [], 'database');
+
+        $this->assertStringNotContainsString('tenant_id', $sql);
+    }
+
     public function test_build_up_does_not_duplicate_id_when_in_schema_fields(): void
     {
         $sql = $this->builder->buildUp($this->schema(['id' => 'int']));
@@ -179,6 +186,6 @@ class MigrationBuilderTest extends TestCase
         $this->assertStringContainsString('product_id INT NOT NULL', $sql);
         $this->assertStringContainsString('FOREIGN KEY (order_id) REFERENCES orders(id)', $sql);
         $this->assertStringContainsString('FOREIGN KEY (product_id) REFERENCES products(id)', $sql);
-        $this->assertStringContainsString('UNIQUE INDEX uix_orderitems_order_id_product_id', $sql);
+        $this->assertStringContainsString('UNIQUE INDEX uix_order_items_order_id_product_id', $sql);
     }
 }

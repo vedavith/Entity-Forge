@@ -9,6 +9,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Yaml\Yaml;
 
 class GenerateCommand extends Command
 {
@@ -42,10 +43,17 @@ class GenerateCommand extends Command
             return Command::FAILURE;
         }
 
+        $strategy = 'shared';
+        $appYaml = getcwd() . '/config/application.yaml';
+        if (file_exists($appYaml)) {
+            $yaml = Yaml::parseFile($appYaml);
+            $strategy = $yaml['tenancy']['strategy'] ?? 'shared';
+        }
+
         $generator = new EntityGenerator();
 
         try {
-            $generator->generate($config, $withMigration);
+            $generator->generate($config, $withMigration, [], $strategy);
             $output->writeln("<info>Generated {$entity} successfully.</info>");
         } catch (\Throwable $e) {
             $output->writeln("<error>Error generating {$entity}: {$e->getMessage()}</error>");
