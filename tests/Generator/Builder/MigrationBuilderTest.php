@@ -185,6 +185,13 @@ class MigrationBuilderTest extends TestCase
         $this->assertStringContainsString('INDEX idx_orders_user_id_status (user_id, status)', $sql);
     }
 
+    public function test_build_up_maps_unknown_type_to_text(): void
+    {
+        $sql = $this->builder->buildUp($this->schema(['data' => 'json']));
+
+        $this->assertStringContainsString('data TEXT', $sql);
+    }
+
     public function test_build_up_emits_multiple_fks_and_indexes(): void
     {
         $schema = new EntitySchema([

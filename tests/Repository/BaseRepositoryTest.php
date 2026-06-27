@@ -262,6 +262,15 @@ class BaseRepositoryTest extends TestCase
         $this->repo('database')->update(1, ['`injected`' => 'value']);
     }
 
+    public function test_resolve_table_name_derives_from_class_name(): void
+    {
+        $repo = (new \ReflectionClass(WidgetRepository::class))->newInstanceWithoutConstructor();
+        $method = (new \ReflectionClass(BaseRepository::class))->getMethod('resolveTableName');
+        $method->setAccessible(true);
+
+        $this->assertSame('widgets', $method->invoke($repo));
+    }
+
     public function test_transaction_methods_delegate_to_pdo(): void
     {
         $this->pdo->allows('beginTransaction')->once()->andReturn(true);

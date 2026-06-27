@@ -74,4 +74,9 @@ class EntitySchemaTest extends TestCase
         $schema  = $this->schema(['indexes' => $indexes]);
         $this->assertSame($indexes, $schema->getIndexes());
     }
+
+    public function test_get_primary_key_returns_id(): void
+    {
+        $this->assertSame('id', $this->schema()->getPrimaryKey());
+    }
 }
