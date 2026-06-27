@@ -6,7 +6,7 @@ class Str
 {
     public static function toTableName(string $entityName): string
     {
-        $snake = strtolower(preg_replace('/([A-Z])/', '_$1', lcfirst($entityName)));
+        $snake = strtolower((string) preg_replace('/([A-Z])/', '_$1', lcfirst($entityName)));
         return self::pluralize($snake);
     }
 
