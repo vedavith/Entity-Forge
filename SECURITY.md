@@ -2,20 +2,50 @@
 
 ## Supported Versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+| Version | Supported |
+|---------|-----------|
+| 2.x     | ✓ Active  |
+| 1.x     | ✗ End of life |
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+Only the latest `2.x` release receives security fixes.
+
+---
 
 ## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
+Please **do not** open a public GitHub issue for security vulnerabilities.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+Send a report directly to **veda_ravula@outlook.com** with:
+
+- A description of the vulnerability
+- Steps to reproduce it
+- The potential impact
+- Any suggested fix (optional)
+
+I'll acknowledge your report within **48 hours** and aim to release a patch within **7 days** depending on severity.
+
+---
+
+## Scope
+
+Areas most relevant to this framework:
+
+- **SQL injection** — column name validation in `BaseRepository`, query construction in `MigrationBuilder`
+- **Tenant isolation bypass** — `TenantContext`, `TenantGuard`, `BaseRepository::shouldApplyTenantScope()`
+- **Arbitrary file write** — `FileWriter` used during code generation
+- **JWT validation** — `JwtTenantResolver` (algorithm confusion, signature bypass)
+- **Config injection** — YAML parsing and merging in `ConfigLoader`
+
+---
+
+## Disclosure Policy
+
+Once a fix is released, I'll publish a summary of the vulnerability and credit the reporter (unless they prefer to stay anonymous).
+
+---
+
+## Out of Scope
+
+- Vulnerabilities in PHP itself or third-party Composer dependencies
+- Issues only reproducible in configurations explicitly documented as insecure
+- Denial of service via resource exhaustion in local development setups
