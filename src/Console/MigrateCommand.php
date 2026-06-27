@@ -26,14 +26,14 @@ class MigrateCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $app = new Application(__DIR__ . '/../../config');
+        $app = new Application(getcwd() . '/config');
         $app->boot([], false);
 
         $config = $app->getConfig()['database'];
 
         $dryRun = (bool) $input->getOption('dry-run');
         $connection = new Connection($config);
-        $runner = new MigrationRunner($connection);
+        $runner = new MigrationRunner($connection, fn(string $msg) => $output->writeln($msg));
 
         try {
             $runner->run('database/migrations', $dryRun);

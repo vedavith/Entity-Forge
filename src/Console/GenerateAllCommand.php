@@ -7,6 +7,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Yaml\Yaml;
 
 class GenerateAllCommand extends Command
 {
@@ -99,11 +100,13 @@ class GenerateAllCommand extends Command
             return Command::FAILURE;
         }
 
-        $pkMap = [];
-        foreach ($configs as $entityName => $config) {
-            $fields = $config['fields'] ?? [];
-            $candidate = strtolower($entityName) . '_id';
-            $pkMap[$entityName] = isset($fields['id']) ? 'id' : (isset($fields[$candidate]) ? $candidate : 'id');
+        $pkMap = array_fill_keys(array_keys($configs), 'id');
+
+        $strategy = 'shared';
+        $appYaml = getcwd() . '/config/application.yaml';
+        if (file_exists($appYaml)) {
+            $yaml = Yaml::parseFile($appYaml);
+            $strategy = $yaml['tenancy']['strategy'] ?? 'shared';
         }
 
         $withMigration = $input->getOption('migration');
@@ -113,7 +116,7 @@ class GenerateAllCommand extends Command
 
         foreach ($configs as $entityName => $config) {
             try {
-                $generator->generate($config, $withMigration, $pkMap);
+                $generator->generate($config, $withMigration, $pkMap, $strategy);
                 $output->writeln("<info>Generated {$entityName}</info>");
             } catch (\Throwable $e) {
                 $output->writeln("<error>{$e->getMessage()}</error>");

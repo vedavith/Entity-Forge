@@ -88,6 +88,30 @@ class ConsoleCommandsTest extends TestCase
         $this->assertStringContainsString('Generated Widget', $tester->getDisplay());
     }
 
+    public function test_generate_reads_strategy_from_application_yaml(): void
+    {
+        $tmp = sys_get_temp_dir() . '/ef_con_' . uniqid();
+        mkdir($tmp . '/entities', 0755, true);
+        mkdir($tmp . '/config', 0755, true);
+        file_put_contents($tmp . '/entities/Widget.json', json_encode([
+            'entity' => 'Widget',
+            'fields' => ['name' => 'string'],
+        ]));
+        file_put_contents($tmp . '/config/application.yaml', "tenancy:\n  strategy: database\n");
+
+        $origDir = getcwd();
+        chdir($tmp);
+
+        $tester = new CommandTester(new GenerateCommand());
+        $code = $tester->execute(['entity' => 'Widget', '--config' => 'entities']);
+
+        chdir($origDir);
+        $this->removeDir($tmp);
+
+        $this->assertSame(0, $code);
+        $this->assertStringContainsString('Generated Widget', $tester->getDisplay());
+    }
+
     // ── GenerateAllCommand::execute() ──────────────────────────────────────────
 
     public function test_generate_all_fails_when_config_dir_missing(): void
@@ -182,6 +206,29 @@ class ConsoleCommandsTest extends TestCase
             'entity' => 'Item',
             'fields' => ['id' => 'int'],
         ]));
+        $origDir = getcwd();
+        chdir($tmp);
+
+        $tester = new CommandTester(new GenerateAllCommand());
+        $code = $tester->execute([]);
+
+        chdir($origDir);
+        $this->removeDir($tmp);
+
+        $this->assertSame(0, $code);
+        $this->assertStringContainsString('Generated Item', $tester->getDisplay());
+    }
+
+    public function test_generate_all_reads_strategy_from_application_yaml(): void
+    {
+        $tmp = sys_get_temp_dir() . '/ef_con_' . uniqid();
+        mkdir($tmp . '/config/entities', 0755, true);
+        file_put_contents($tmp . '/config/entities/Item.json', json_encode([
+            'entity' => 'Item',
+            'fields' => ['name' => 'string'],
+        ]));
+        file_put_contents($tmp . '/config/application.yaml', "tenancy:\n  strategy: database\n");
+
         $origDir = getcwd();
         chdir($tmp);
 

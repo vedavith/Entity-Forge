@@ -20,16 +20,6 @@ class EntitySchemaTest extends TestCase
         $this->assertSame('Order', $this->schema()->getEntityName());
     }
 
-    public function test_is_multi_tenant_defaults_false(): void
-    {
-        $this->assertFalse($this->schema()->isMultiTenant());
-    }
-
-    public function test_is_multi_tenant_true_when_set(): void
-    {
-        $this->assertTrue($this->schema(['multiTenant' => true])->isMultiTenant());
-    }
-
     public function test_has_timestamps_defaults_false(): void
     {
         $this->assertFalse($this->schema()->hasTimestamps());
@@ -46,14 +36,6 @@ class EntitySchemaTest extends TestCase
 
         $this->assertArrayHasKey('id', $fields);
         $this->assertArrayHasKey('total', $fields);
-    }
-
-    public function test_get_fields_appends_tenant_id_when_multi_tenant(): void
-    {
-        $fields = $this->schema(['multiTenant' => true])->getFields();
-
-        $this->assertArrayHasKey('tenant_id', $fields);
-        $this->assertSame('string', $fields['tenant_id']);
     }
 
     public function test_get_fields_appends_timestamps_when_enabled(): void
@@ -91,5 +73,10 @@ class EntitySchemaTest extends TestCase
         $indexes = [['columns' => ['email'], 'unique' => true]];
         $schema  = $this->schema(['indexes' => $indexes]);
         $this->assertSame($indexes, $schema->getIndexes());
+    }
+
+    public function test_get_primary_key_returns_id(): void
+    {
+        $this->assertSame('id', $this->schema()->getPrimaryKey());
     }
 }

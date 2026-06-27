@@ -71,7 +71,7 @@ class TenantServiceTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function test_onboard_provisions_and_registers_tenant(): void
+    public function test_onboard_database_strategy_provisions_and_registers_tenant(): void
     {
         /** @var MockInterface&TenantRepository $repo */
         $repo = Mockery::mock(TenantRepository::class);
@@ -82,7 +82,24 @@ class TenantServiceTest extends TestCase
         $provisioner = Mockery::mock(TenantProvisioner::class);
         $provisioner->expects('create')->with('acme')->once();
 
-        $service = new TenantService($this->config(), $repo, $provisioner);
+        $service = new TenantService($this->config('database'), $repo, $provisioner);
+        $service->onboard('acme', 'Acme Corp');
+
+        $this->assertTrue(true);
+    }
+
+    public function test_onboard_shared_strategy_registers_without_provisioning(): void
+    {
+        /** @var MockInterface&TenantRepository $repo */
+        $repo = Mockery::mock(TenantRepository::class);
+        $repo->allows('exists')->with('acme')->andReturn(false);
+        $repo->expects('create')->with('acme', 'Acme Corp')->once();
+
+        /** @var MockInterface&TenantProvisioner $provisioner */
+        $provisioner = Mockery::mock(TenantProvisioner::class);
+        $provisioner->expects('create')->never();
+
+        $service = new TenantService($this->config('shared'), $repo, $provisioner);
         $service->onboard('acme', 'Acme Corp');
 
         $this->assertTrue(true);

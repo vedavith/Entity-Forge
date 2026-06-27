@@ -3,39 +3,56 @@
 namespace EntityForge\Generator\Builder;
 
 use EntityForge\Generator\Schema\EntitySchema;
+use EntityForge\Support\Str;
 
 class MigrationBuilder
 {
     /**
-     * @param array<string, string> $pkMap  entity name → primary key column, used to resolve FK targets
+     * @param array<string, string> $pkMap     entity name → primary key column, used to resolve FK targets
+     * @param string                $strategy  tenancy strategy: 'shared' adds tenant_id, 'database' omits it
      */
-    public function buildUp(EntitySchema $schema, array $pkMap = []): string
+    public function buildUp(EntitySchema $schema, array $pkMap = [], string $strategy = 'shared'): string
     {
-        $table     = strtolower($schema->getEntityName()) . 's';
+        $table     = Str::toTableName($schema->getEntityName());
         $fields    = $schema->getFields();
         $relations = $schema->getRelations();
         $indexes   = $schema->getIndexes();
-        $pk        = $schema->getPrimaryKey();
 
-        $definitions = [];
+        $fkColumns = array_values($relations['belongsTo'] ?? []);
+
+        $definitions = ['id INT AUTO_INCREMENT PRIMARY KEY'];
+
+        if ($strategy === 'shared') {
+            $definitions[] = 'tenant_id VARCHAR(255) NOT NULL';
+        }
 
         foreach ($fields as $name => $type) {
-            $definitions[] = $this->mapColumn($name, $type, $pk ?? '');
+            if ($name === 'id' || $name === 'tenant_id' || in_array($name, $fkColumns, true)) {
+                continue;
+            }
+            $definitions[] = $this->mapColumn($name, $type);
         }
 
         foreach ($relations['belongsTo'] ?? [] as $refEntity => $fkColumn) {
-            $refTable   = strtolower($refEntity) . 's';
+            $refTable   = Str::toTableName($refEntity);
             $refPk      = $pkMap[$refEntity] ?? 'id';
             $constraint = "fk_{$table}_{$fkColumn}";
+            $definitions[] = "{$fkColumn} INT NOT NULL";
             $definitions[] = "CONSTRAINT {$constraint} FOREIGN KEY ({$fkColumn}) REFERENCES {$refTable}({$refPk})";
         }
 
         foreach ($indexes as $index) {
-            $cols    = implode(', ', $index['columns']);
-            $slug    = implode('_', $index['columns']);
             $unique  = $index['unique'] ?? false;
-            $type    = $unique ? 'UNIQUE INDEX' : 'INDEX';
-            $prefix  = $unique ? 'uix' : 'idx';
+            $columns = $index['columns'];
+
+            if ($unique && $strategy === 'shared') {
+                $columns = array_unique(array_merge(['tenant_id'], $columns));
+            }
+
+            $cols   = implode(', ', $columns);
+            $slug   = implode('_', $columns);
+            $type   = $unique ? 'UNIQUE INDEX' : 'INDEX';
+            $prefix = $unique ? 'uix' : 'idx';
             $definitions[] = "{$type} {$prefix}_{$table}_{$slug} ({$cols})";
         }
 
@@ -50,23 +67,20 @@ SQL;
 
     public function buildDown(EntitySchema $schema): string
     {
-        $table = strtolower($schema->getEntityName()) . 's';
+        $table = Str::toTableName($schema->getEntityName());
         return "DROP TABLE IF EXISTS {$table};";
     }
 
-    private function mapColumn(string $name, string $type, string $pk = 'id'): string
+    private function mapColumn(string $name, string $type): string
     {
         $sqlType = match ($type) {
-            'int' => 'INT',
-            'string' => 'VARCHAR(255)',
-            'float' => 'FLOAT',
-            'bool' => 'BOOLEAN',
-            default => 'TEXT'
+            'int'      => 'INT',
+            'string'   => 'VARCHAR(255)',
+            'float'    => 'FLOAT',
+            'bool'     => 'BOOLEAN',
+            'datetime' => 'DATETIME',
+            default    => 'TEXT'
         };
-
-        if ($name === $pk) {
-            return "{$pk} INT PRIMARY KEY AUTO_INCREMENT";
-        }
 
         return "{$name} {$sqlType}";
     }

@@ -7,10 +7,15 @@ use PDO;
 class MigrationRunner
 {
     private Connection $connection;
+    /** @var callable(string): void */
+    private $output;
 
-    public function __construct(Connection $connection)
+    public function __construct(Connection $connection, ?callable $output = null)
     {
         $this->connection = $connection;
+        $this->output = $output ?? static function (string $msg): void {
+            echo $msg . "\n";
+        };
     }
 
     public function run(string $path, bool $dryRun = false): void
@@ -25,7 +30,7 @@ class MigrationRunner
         sort($files);
 
         if (empty($files)) {
-            echo "No migrations found.\n";
+            ($this->output)('No migrations found.');
             return;
         }
 
@@ -37,12 +42,12 @@ class MigrationRunner
             $name = basename($file);
 
             if (in_array($name, $executed, true)) {
-                echo "{$prefix}Skipped (already executed): {$name}\n";
+                ($this->output)("{$prefix}Skipped (already executed): {$name}");
                 continue;
             }
 
             if ($dryRun) {
-                echo "{$prefix}Would execute: {$name}\n";
+                ($this->output)("{$prefix}Would execute: {$name}");
                 continue;
             }
 
@@ -54,13 +59,13 @@ class MigrationRunner
             try {
                 $pdo->exec($sql);
                 $this->mark($name, $batch);
-                echo "Executed: {$name}\n";
+                ($this->output)("Executed: {$name}");
             } catch (\Throwable $e) {
                 throw new \Exception("Migration failed: {$name} - " . $e->getMessage());
             }
         }
 
-        echo $dryRun ? "{$prefix}Done (no changes applied)\n" : "✔ Done\n";
+        ($this->output)($dryRun ? "{$prefix}Done (no changes applied)" : '✔ Done');
     }
 
     public function rollback(string $path, bool $dryRun = false): void
@@ -70,7 +75,7 @@ class MigrationRunner
         $batch  = $this->lastBatch();
 
         if ($batch === 0) {
-            echo "Nothing to rollback.\n";
+            ($this->output)('Nothing to rollback.');
             return;
         }
 
@@ -89,7 +94,7 @@ class MigrationRunner
             }
 
             if ($dryRun) {
-                echo "{$prefix}Would roll back: {$migration}\n";
+                ($this->output)("{$prefix}Would roll back: {$migration}");
                 continue;
             }
 
@@ -100,18 +105,15 @@ class MigrationRunner
 
             try {
                 $pdo->exec($sql);
-
                 $pdo->prepare("DELETE FROM migrations WHERE migration = :m")
                     ->execute(['m' => $migration]);
-
-                echo "Rolled back: {$migration}\n";
-
+                ($this->output)("Rolled back: {$migration}");
             } catch (\Throwable $e) {
                 throw new \Exception("Rollback failed: {$migration} - " . $e->getMessage());
             }
         }
 
-        echo $dryRun ? "{$prefix}Done (no changes applied)\n" : "✔ Rollback complete\n";
+        ($this->output)($dryRun ? "{$prefix}Done (no changes applied)" : '✔ Rollback complete');
     }
 
     private function ensureMigrationsTable(): void
@@ -137,9 +139,7 @@ class MigrationRunner
         }
     }
 
-    /**
-     * @return array<int, string>
-     */
+    /** @return array<int, string> */
     private function getExecuted(): array
     {
         $stmt = $this->connection->getPdo()->query("SELECT migration FROM migrations");
@@ -149,9 +149,7 @@ class MigrationRunner
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    /**
-     * @return array<int, string>
-     */
+    /** @return array<int, string> */
     private function getExecutedSafe(): array
     {
         try {
@@ -163,14 +161,9 @@ class MigrationRunner
 
     private function mark(string $migration, int $batch): void
     {
-        $stmt = $this->connection->getPdo()->prepare(
-            "INSERT INTO migrations (migration, batch) VALUES (:m, :b)"
-        );
-
-        $stmt->execute([
-            'm' => $migration,
-            'b' => $batch
-        ]);
+        $this->connection->getPdo()
+            ->prepare("INSERT INTO migrations (migration, batch) VALUES (:m, :b)")
+            ->execute(['m' => $migration, 'b' => $batch]);
     }
 
     private function nextBatch(): int

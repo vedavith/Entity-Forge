@@ -3,6 +3,7 @@
 namespace EntityForge\Repository;
 
 use EntityForge\Database\Connection;
+use EntityForge\Support\Str;
 use EntityForge\Tenant\TenantConnectionResolver;
 use EntityForge\Tenant\TenantContext;
 use EntityForge\Tenant\TenantGuard;
@@ -33,11 +34,8 @@ abstract class BaseRepository
 
     protected function resolveTableName(): string
     {
-        $class = (new \ReflectionClass($this))
-            ->getShortName();
-        return strtolower(
-                str_replace('Repository', '', $class)
-            ) . 's';
+        $class = (new \ReflectionClass($this))->getShortName();
+        return Str::toTableName(str_replace('Repository', '', $class));
     }
 
     /**
@@ -63,13 +61,9 @@ abstract class BaseRepository
         return $data;
     }
 
-    /**
-     * Determine if tenant scope should be applied
-     */
     protected function shouldApplyTenantScope(): bool
     {
-        return ($this->config['tenancy']['strategy'] ?? 'shared')
-            === 'shared';
+        return ($this->config['tenancy']['strategy'] ?? 'shared') === 'shared';
     }
 
     /**
@@ -85,10 +79,7 @@ abstract class BaseRepository
 
         array_walk($columns, fn(string $c) => $this->assertColumnName($c));
 
-        $placeholders = array_map(
-            fn(string $column) => ':' . $column,
-            $columns
-        );
+        $placeholders = array_map(fn(string $column) => ':' . $column, $columns);
 
         $sql = sprintf(
             'INSERT INTO %s (%s) VALUES (%s)',
@@ -97,13 +88,10 @@ abstract class BaseRepository
             implode(', ', $placeholders)
         );
 
-        $statement = $this->connection
-            ->getPdo()
-            ->prepare($sql);
+        $pdo = $this->connection->getPdo();
+        $pdo->prepare($sql)->execute($data);
 
-        $statement->execute($data);
-
-        return $data;
+        return ['id' => (int) $pdo->lastInsertId()] + $data;
     }
 
     /**
@@ -113,19 +101,14 @@ abstract class BaseRepository
     public function findAll(): array
     {
         $sql = "SELECT * FROM {$this->table}";
-
         $params = [];
 
         if ($this->shouldApplyTenantScope()) {
             $sql .= " WHERE tenant_id = :tenant_id";
-
             $params['tenant_id'] = $this->getTenantId();
         }
 
-        $statement = $this->connection
-            ->getPdo()
-            ->prepare($sql);
-
+        $statement = $this->connection->getPdo()->prepare($sql);
         $statement->execute($params);
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
@@ -138,25 +121,17 @@ abstract class BaseRepository
     public function findById(int $id): ?array
     {
         $sql = "SELECT * FROM {$this->table} WHERE id = :id";
-
-        $params = [
-            'id' => $id,
-        ];
+        $params = ['id' => $id];
 
         if ($this->shouldApplyTenantScope()) {
             $sql .= " AND tenant_id = :tenant_id";
-
             $params['tenant_id'] = $this->getTenantId();
         }
 
-        $statement = $this->connection
-            ->getPdo()
-            ->prepare($sql);
-
+        $statement = $this->connection->getPdo()->prepare($sql);
         $statement->execute($params);
 
         $result = $statement->fetch(PDO::FETCH_ASSOC);
-
         return $result ?: null;
     }
 
@@ -168,7 +143,6 @@ abstract class BaseRepository
     public function where(array $conditions): array
     {
         $clauses = [];
-
         $params = [];
 
         foreach ($conditions as $column => $value) {
@@ -179,7 +153,6 @@ abstract class BaseRepository
 
         if ($this->shouldApplyTenantScope()) {
             $clauses[] = "tenant_id = :tenant_id";
-
             $params['tenant_id'] = $this->getTenantId();
         }
 
@@ -189,10 +162,7 @@ abstract class BaseRepository
             implode(' AND ', $clauses)
         );
 
-        $statement = $this->connection
-            ->getPdo()
-            ->prepare($sql);
-
+        $statement = $this->connection->getPdo()->prepare($sql);
         $statement->execute($params);
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
@@ -218,66 +188,44 @@ abstract class BaseRepository
         );
 
         $params = $data;
-
         $params['id'] = $id;
 
         if ($this->shouldApplyTenantScope()) {
             $sql .= " AND tenant_id = :tenant_id";
-
             $params['tenant_id'] = $this->getTenantId();
         }
 
-        $statement = $this->connection
-            ->getPdo()
-            ->prepare($sql);
-
-        return $statement->execute($params);
+        return $this->connection->getPdo()->prepare($sql)->execute($params);
     }
 
     /**
-     * Delete record by ID
-     *
      * @throws Exception
      */
     public function delete(int $id): bool
     {
         $sql = "DELETE FROM {$this->table} WHERE id = :id";
-
-        $params = [
-            'id' => $id,
-        ];
+        $params = ['id' => $id];
 
         if ($this->shouldApplyTenantScope()) {
             $sql .= " AND tenant_id = :tenant_id";
-
             $params['tenant_id'] = $this->getTenantId();
         }
 
-        $statement = $this->connection
-            ->getPdo()
-            ->prepare($sql);
-
-        return $statement->execute($params);
+        return $this->connection->getPdo()->prepare($sql)->execute($params);
     }
 
     public function beginTransaction(): void
     {
-        $this->connection
-            ->getPdo()
-            ->beginTransaction();
+        $this->connection->getPdo()->beginTransaction();
     }
 
     public function commit(): void
     {
-        $this->connection
-            ->getPdo()
-            ->commit();
+        $this->connection->getPdo()->commit();
     }
 
     public function rollback(): void
     {
-        $this->connection
-            ->getPdo()
-            ->rollBack();
+        $this->connection->getPdo()->rollBack();
     }
 }

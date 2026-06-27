@@ -30,7 +30,12 @@ class TenantService
             throw new \Exception("Tenant already exists: {$tenantId}");
         }
 
-        $this->provisioner->create($tenantId);
+        $strategy = $this->config['tenancy']['strategy'] ?? 'shared';
+
+        if ($strategy === 'database') {
+            $this->provisioner->create($tenantId);
+        }
+
         $this->repo->create($tenantId, $name);
     }
 

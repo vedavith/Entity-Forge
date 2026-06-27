@@ -170,4 +170,39 @@ class RequestTest extends TestCase
         $this->assertSame(['id' => 1], $request->getAttribute('user'));
         $this->assertSame('admin', $request->getAttribute('role'));
     }
+
+    // ── json() ─────────────────────────────────────────────────────────────────
+
+    public function test_json_returns_entire_body_array(): void
+    {
+        $request = new Request(body: ['name' => 'Alice', 'age' => 30]);
+
+        $this->assertSame(['name' => 'Alice', 'age' => 30], $request->json());
+    }
+
+    public function test_json_returns_empty_array_when_no_body(): void
+    {
+        $request = new Request();
+
+        $this->assertSame([], $request->json());
+    }
+
+    // ── capture() JSON content type ───────────────────────────────────────────
+
+    public function test_capture_uses_empty_body_when_json_content_type_but_no_input(): void
+    {
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['REQUEST_URI']    = '/api/items';
+        $_SERVER['CONTENT_TYPE']   = 'application/json';
+        $_POST = [];
+
+        $request = Request::capture();
+
+        $this->assertSame('POST', $request->method());
+        $this->assertSame([], $request->json());
+
+        unset($_SERVER['CONTENT_TYPE']);
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        unset($_SERVER['REQUEST_URI']);
+    }
 }

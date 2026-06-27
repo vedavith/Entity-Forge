@@ -30,7 +30,7 @@ class MigrateAllTenantsCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $app = new Application(__DIR__ . '/../../config');
+        $app = new Application(getcwd() . '/config');
         $app->boot([], false);
         $config = $app->getConfig();
 
@@ -109,7 +109,7 @@ class MigrateAllTenantsCommand extends Command
         $dbConfig['database'] = $dbConfig['database'] . '_' . $tenantId;
 
         try {
-            $runner = new MigrationRunner(new Connection($dbConfig));
+            $runner = new MigrationRunner(new Connection($dbConfig), fn(string $msg) => $output->writeln($msg));
             $runner->run('database/migrations', $dryRun);
             $output->writeln($dryRun
                 ? "<comment>Dry run: {$tenantId}</comment>"
