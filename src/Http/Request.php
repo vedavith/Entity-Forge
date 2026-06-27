@@ -23,14 +23,21 @@ class Request
 
     public static function capture(): self
     {
-        $uri    = $_SERVER['REQUEST_URI'] ?? '/';
-        $parsed = parse_url($uri, PHP_URL_PATH);
-        $path   = is_string($parsed) ? $parsed : '/';
+        $uri         = $_SERVER['REQUEST_URI'] ?? '/';
+        $parsed      = parse_url($uri, PHP_URL_PATH);
+        $path        = is_string($parsed) ? $parsed : '/';
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+
+        $body = $_POST;
+        if (str_contains($contentType, 'application/json')) {
+            $raw  = file_get_contents('php://input');
+            $body = $raw ? (json_decode($raw, true) ?? []) : [];
+        }
 
         return new self(
             headers: getallheaders() ?: [],
             query: $_GET,
-            body: $_POST,
+            body: $body,
             method: $_SERVER['REQUEST_METHOD'] ?? 'GET',
             path: $path
         );
@@ -49,6 +56,12 @@ class Request
     public function body(string $key): mixed
     {
         return $this->body[$key] ?? null;
+    }
+
+    /** @return array<string, mixed> */
+    public function json(): array
+    {
+        return $this->body;
     }
 
     public function method(): string

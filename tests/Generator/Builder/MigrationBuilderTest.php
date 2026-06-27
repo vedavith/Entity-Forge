@@ -145,7 +145,7 @@ class MigrationBuilderTest extends TestCase
         $this->assertStringContainsString('INDEX idx_orders_status (status)', $sql);
     }
 
-    public function test_build_up_emits_unique_index(): void
+    public function test_build_up_emits_unique_index_shared_prepends_tenant_id(): void
     {
         $schema = new EntitySchema([
             'entity'  => 'User',
@@ -153,9 +153,23 @@ class MigrationBuilderTest extends TestCase
             'indexes' => [['columns' => ['email'], 'unique' => true]],
         ]);
 
-        $sql = $this->builder->buildUp($schema);
+        $sql = $this->builder->buildUp($schema, [], 'shared');
+
+        $this->assertStringContainsString('UNIQUE INDEX uix_users_tenant_id_email (tenant_id, email)', $sql);
+    }
+
+    public function test_build_up_emits_unique_index_database_strategy_no_tenant_id(): void
+    {
+        $schema = new EntitySchema([
+            'entity'  => 'User',
+            'fields'  => ['email' => 'string'],
+            'indexes' => [['columns' => ['email'], 'unique' => true]],
+        ]);
+
+        $sql = $this->builder->buildUp($schema, [], 'database');
 
         $this->assertStringContainsString('UNIQUE INDEX uix_users_email (email)', $sql);
+        $this->assertStringNotContainsString('tenant_id', $sql);
     }
 
     public function test_build_up_emits_composite_index(): void
@@ -186,6 +200,6 @@ class MigrationBuilderTest extends TestCase
         $this->assertStringContainsString('product_id INT NOT NULL', $sql);
         $this->assertStringContainsString('FOREIGN KEY (order_id) REFERENCES orders(id)', $sql);
         $this->assertStringContainsString('FOREIGN KEY (product_id) REFERENCES products(id)', $sql);
-        $this->assertStringContainsString('UNIQUE INDEX uix_order_items_order_id_product_id', $sql);
+        $this->assertStringContainsString('UNIQUE INDEX uix_order_items_tenant_id_order_id_product_id', $sql);
     }
 }

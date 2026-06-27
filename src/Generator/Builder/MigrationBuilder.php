@@ -42,11 +42,17 @@ class MigrationBuilder
         }
 
         foreach ($indexes as $index) {
-            $cols    = implode(', ', $index['columns']);
-            $slug    = implode('_', $index['columns']);
             $unique  = $index['unique'] ?? false;
-            $type    = $unique ? 'UNIQUE INDEX' : 'INDEX';
-            $prefix  = $unique ? 'uix' : 'idx';
+            $columns = $index['columns'];
+
+            if ($unique && $strategy === 'shared') {
+                $columns = array_unique(array_merge(['tenant_id'], $columns));
+            }
+
+            $cols   = implode(', ', $columns);
+            $slug   = implode('_', $columns);
+            $type   = $unique ? 'UNIQUE INDEX' : 'INDEX';
+            $prefix = $unique ? 'uix' : 'idx';
             $definitions[] = "{$type} {$prefix}_{$table}_{$slug} ({$cols})";
         }
 
