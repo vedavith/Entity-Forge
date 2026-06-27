@@ -22,6 +22,34 @@ It provides everything needed to build a scalable SaaS backend: JSON-driven code
 
 ---
 
+## Example Projects
+
+### [ledger-api](https://github.com/vedavith/ledger-api)
+
+A double-entry accounting REST API that demonstrates a complete EntityForge project using the `shared` tenancy strategy.
+
+**What it covers:**
+
+- Entity schemas for `Account`, `JournalEntry`, and `LedgerLine` with foreign key relations and tenant-scoped unique indexes
+- Migrations generated with `generate:all --migration` and run with `migrate`
+- Tenants created with `tenant:create`
+- Controllers scaffolded with `make:controller` and filled in with CRUD logic using `$request->json()` and `BaseRepository`
+- Middleware scaffolded with `make:middleware` — `TenantMiddleware` reads the `X-Tenant-ID` header and calls `TenantContext::setTenantId()`
+- Transaction wrapping in `JournalController` — if any ledger line insert fails, the journal entry is rolled back atomically
+- Routes wired in `public/index.php` via `Router` and `Pipeline`
+
+```bash
+git clone https://github.com/vedavith/ledger-api.git
+cd ledger-api
+composer install
+# create database, edit config/application.yaml, then:
+php vendor/bin/ef migrate
+php vendor/bin/ef tenant:create acme --name="Acme Corp"
+php -S localhost:8181 -t public
+```
+
+---
+
 ## Requirements
 
 - PHP 8.3+
