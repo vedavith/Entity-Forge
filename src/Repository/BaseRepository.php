@@ -214,6 +214,69 @@ abstract class BaseRepository
         return $this->connection->getPdo()->prepare($sql)->execute($params);
     }
 
+    private function assertMetaKey(string $key): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $key)) {
+            throw new \InvalidArgumentException("Invalid metadata key: '{$key}'");
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function getMeta(int $id, string $key): mixed
+    {
+        $this->assertMetaKey($key);
+
+        $sql    = "SELECT JSON_UNQUOTE(JSON_EXTRACT(metadata, :path)) FROM {$this->table} WHERE id = :id";
+        $params = ['path' => '$.' . $key, 'id' => $id];
+
+        if ($this->shouldApplyTenantScope()) {
+            $sql .= " AND tenant_id = :tenant_id";
+            $params['tenant_id'] = $this->getTenantId();
+        }
+
+        $stmt = $this->connection->getPdo()->prepare($sql);
+        $stmt->execute($params);
+        $val = $stmt->fetchColumn();
+
+        return $val !== false ? $val : null;
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function setMeta(int $id, string $key, mixed $value): bool
+    {
+        $this->assertMetaKey($key);
+
+        $patch  = (string) json_encode([$key => $value]);
+        $sql    = "UPDATE {$this->table} SET metadata = JSON_MERGE_PATCH(COALESCE(metadata, '{}'), :patch) WHERE id = :id";
+        $params = ['patch' => $patch, 'id' => $id];
+
+        if ($this->shouldApplyTenantScope()) {
+            $sql .= " AND tenant_id = :tenant_id";
+            $params['tenant_id'] = $this->getTenantId();
+        }
+
+        return $this->connection->getPdo()->prepare($sql)->execute($params);
+    }
+
+    /**
+     * @return array<string, mixed>
+     * @throws Exception
+     */
+    public function getAllMeta(int $id): array
+    {
+        $row = $this->findById($id);
+
+        if ($row === null || !isset($row['metadata'])) {
+            return [];
+        }
+
+        return json_decode((string) $row['metadata'], true) ?? [];
+    }
+
     public function beginTransaction(): void
     {
         $this->connection->getPdo()->beginTransaction();

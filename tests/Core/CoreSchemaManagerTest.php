@@ -24,8 +24,7 @@ class CoreSchemaManagerTest extends TestCase
     {
         $pdo = Mockery::mock(PDO::class);
         $pdo->allows('exec')
-            ->with(Mockery::pattern('/CREATE TABLE IF NOT EXISTS tenants/'))
-            ->once()
+            ->with(Mockery::pattern('/CREATE TABLE IF NOT EXISTS/'))
             ->andReturn(0);
 
         /** @var MockInterface&Connection $conn */

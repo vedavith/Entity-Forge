@@ -159,4 +159,22 @@ class EntityBuilderTest extends TestCase
 
         $this->assertStringStartsWith('<?php', $code);
     }
+
+    public function test_generates_metadata_property_when_flagged(): void
+    {
+        $code = $this->builder->build($this->schema([
+            'entity'   => 'Account',
+            'fields'   => [],
+            'metadata' => true,
+        ]));
+
+        $this->assertStringContainsString('public ?array $metadata = null;', $code);
+    }
+
+    public function test_omits_metadata_property_when_not_flagged(): void
+    {
+        $code = $this->builder->build($this->schema(['entity' => 'Account', 'fields' => []]));
+
+        $this->assertStringNotContainsString('$metadata', $code);
+    }
 }

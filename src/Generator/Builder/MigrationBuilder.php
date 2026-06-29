@@ -41,6 +41,10 @@ class MigrationBuilder
             $definitions[] = "CONSTRAINT {$constraint} FOREIGN KEY ({$fkColumn}) REFERENCES {$refTable}({$refPk})";
         }
 
+        if ($schema->hasMetadata()) {
+            $definitions[] = 'metadata JSON NULL';
+        }
+
         foreach ($indexes as $index) {
             $unique  = $index['unique'] ?? false;
             $columns = $index['columns'];

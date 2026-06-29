@@ -29,6 +29,7 @@ class CoreSchemaManager
     {
         return [
             $this->tenantsTable(),
+            $this->tenantFieldsTable(),
         ];
     }
 
@@ -41,6 +42,23 @@ CREATE TABLE IF NOT EXISTS tenants (
     name VARCHAR(255) NOT NULL,
     status VARCHAR(50) DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+SQL;
+    }
+
+    private function tenantFieldsTable(): string
+    {
+        return <<<SQL
+CREATE TABLE IF NOT EXISTS tenant_fields (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id  VARCHAR(255) NOT NULL,
+    entity     VARCHAR(255) NOT NULL,
+    field_name VARCHAR(255) NOT NULL,
+    field_type VARCHAR(50)  NOT NULL,
+    label      VARCHAR(255) NOT NULL,
+    required   BOOLEAN      DEFAULT FALSE,
+    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uix_tenant_fields (tenant_id, entity, field_name)
 )
 SQL;
     }

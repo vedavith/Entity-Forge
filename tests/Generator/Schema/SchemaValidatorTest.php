@@ -179,4 +179,18 @@ class SchemaValidatorTest extends TestCase
             'indexes' => [['columns' => ['status'], 'unique' => 'yes']],
         ]);
     }
+
+    public function test_metadata_true_passes(): void
+    {
+        $this->validator->validate(['entity' => 'Account', 'metadata' => true]);
+        $this->assertTrue(true);
+    }
+
+    public function test_metadata_non_boolean_throws(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches("/'metadata' must be a boolean/");
+
+        $this->validator->validate(['entity' => 'Account', 'metadata' => 'yes']);
+    }
 }

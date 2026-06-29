@@ -43,6 +43,11 @@ class SchemaValidator
             }
         }
 
+        // Metadata validation
+        if (isset($config['metadata']) && !is_bool($config['metadata'])) {
+            throw new \InvalidArgumentException("'metadata' must be a boolean");
+        }
+
         // Indexes validation
         foreach ($config['indexes'] ?? [] as $i => $index) {
             if (!isset($index['columns']) || !is_array($index['columns']) || empty($index['columns'])) {

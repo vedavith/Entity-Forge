@@ -192,6 +192,26 @@ class MigrationBuilderTest extends TestCase
         $this->assertStringContainsString('data TEXT', $sql);
     }
 
+    public function test_build_up_emits_metadata_column_when_flagged(): void
+    {
+        $schema = new EntitySchema([
+            'entity'   => 'Account',
+            'fields'   => ['name' => 'string'],
+            'metadata' => true,
+        ]);
+
+        $sql = $this->builder->buildUp($schema);
+
+        $this->assertStringContainsString('metadata JSON NULL', $sql);
+    }
+
+    public function test_build_up_omits_metadata_column_when_not_flagged(): void
+    {
+        $sql = $this->builder->buildUp($this->schema(['name' => 'string']));
+
+        $this->assertStringNotContainsString('metadata', $sql);
+    }
+
     public function test_build_up_emits_multiple_fks_and_indexes(): void
     {
         $schema = new EntitySchema([
