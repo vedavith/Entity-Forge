@@ -52,4 +52,9 @@ class EntitySchema
     {
         return $this->config['indexes'] ?? [];
     }
+
+    public function hasMetadata(): bool
+    {
+        return $this->config['metadata'] ?? false;
+    }
 }

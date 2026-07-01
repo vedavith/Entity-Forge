@@ -17,6 +17,10 @@ class EntityBuilder
             $properties .= "    public {$this->mapType($type)} \${$name};\n";
         }
 
+        if ($schema->hasMetadata()) {
+            $properties .= "    public ?array \$metadata = null;\n";
+        }
+
         $relationsCode = $this->buildRelations($schema);
         $useBlock      = $this->buildUseStatements($schema);
         $body          = $properties . ($relationsCode !== '' ? "\n{$relationsCode}" : '');

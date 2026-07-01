@@ -79,4 +79,14 @@ class EntitySchemaTest extends TestCase
     {
         $this->assertSame('id', $this->schema()->getPrimaryKey());
     }
+
+    public function test_has_metadata_defaults_false(): void
+    {
+        $this->assertFalse($this->schema()->hasMetadata());
+    }
+
+    public function test_has_metadata_true_when_set(): void
+    {
+        $this->assertTrue($this->schema(['metadata' => true])->hasMetadata());
+    }
 }

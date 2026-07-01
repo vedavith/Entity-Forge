@@ -271,6 +271,134 @@ class BaseRepositoryTest extends TestCase
         $this->assertSame('widgets', $result);
     }
 
+    // ── getMeta ────────────────────────────────────────────────────────────────
+
+    public function test_get_meta_shared_strategy_scopes_by_tenant(): void
+    {
+        TenantContext::setTenantId('acme');
+
+        $stmt = Mockery::mock(PDOStatement::class);
+        $stmt->allows('execute')->with(['path' => '$.vat_number', 'id' => 1, 'tenant_id' => 'acme'])->once()->andReturn(true);
+        $stmt->allows('fetchColumn')->andReturn('BE0123456789');
+
+        $this->pdo->allows('prepare')
+            ->with("SELECT JSON_UNQUOTE(JSON_EXTRACT(metadata, :path)) FROM widgets WHERE id = :id AND tenant_id = :tenant_id")
+            ->andReturn($stmt);
+
+        $result = $this->repo('shared')->getMeta(1, 'vat_number');
+
+        $this->assertSame('BE0123456789', $result);
+    }
+
+    public function test_get_meta_returns_null_when_not_found(): void
+    {
+        $stmt = Mockery::mock(PDOStatement::class);
+        $stmt->allows('execute')->once()->andReturn(true);
+        $stmt->allows('fetchColumn')->andReturn(false);
+
+        $this->pdo->allows('prepare')
+            ->with("SELECT JSON_UNQUOTE(JSON_EXTRACT(metadata, :path)) FROM widgets WHERE id = :id")
+            ->andReturn($stmt);
+
+        $result = $this->repo('database')->getMeta(1, 'vat_number');
+
+        $this->assertNull($result);
+    }
+
+    public function test_get_meta_throws_on_invalid_key(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/Invalid metadata key/');
+
+        $this->repo('database')->getMeta(1, 'bad key!');
+    }
+
+    // ── setMeta ────────────────────────────────────────────────────────────────
+
+    public function test_set_meta_shared_strategy_patches_json(): void
+    {
+        TenantContext::setTenantId('acme');
+
+        $stmt = Mockery::mock(PDOStatement::class);
+        $stmt->allows('execute')->once()->andReturn(true);
+
+        $this->pdo->allows('prepare')
+            ->with("UPDATE widgets SET metadata = JSON_MERGE_PATCH(COALESCE(metadata, '{}'), :patch) WHERE id = :id AND tenant_id = :tenant_id")
+            ->andReturn($stmt);
+
+        $result = $this->repo('shared')->setMeta(1, 'vat_number', 'BE0123');
+
+        $this->assertTrue($result);
+    }
+
+    public function test_set_meta_database_strategy_no_tenant_scope(): void
+    {
+        $stmt = Mockery::mock(PDOStatement::class);
+        $stmt->allows('execute')->once()->andReturn(true);
+
+        $this->pdo->allows('prepare')
+            ->with("UPDATE widgets SET metadata = JSON_MERGE_PATCH(COALESCE(metadata, '{}'), :patch) WHERE id = :id")
+            ->andReturn($stmt);
+
+        $result = $this->repo('database')->setMeta(1, 'vat_number', 'BE0123');
+
+        $this->assertTrue($result);
+    }
+
+    public function test_set_meta_throws_on_invalid_key(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/Invalid metadata key/');
+
+        $this->repo('database')->setMeta(1, 'bad key!', 'value');
+    }
+
+    // ── getAllMeta ─────────────────────────────────────────────────────────────
+
+    public function test_get_all_meta_decodes_json_column(): void
+    {
+        $stmt = Mockery::mock(PDOStatement::class);
+        $stmt->allows('execute')->once()->andReturn(true);
+        $stmt->allows('fetch')->with(PDO::FETCH_ASSOC)->andReturn([
+            'id'       => 1,
+            'metadata' => '{"vat_number":"BE0123","fiscal_year":"Apr"}',
+        ]);
+
+        $this->pdo->allows('prepare')
+            ->with('SELECT * FROM widgets WHERE id = :id')
+            ->andReturn($stmt);
+
+        $result = $this->repo('database')->getAllMeta(1);
+
+        $this->assertSame(['vat_number' => 'BE0123', 'fiscal_year' => 'Apr'], $result);
+    }
+
+    public function test_get_all_meta_returns_empty_when_metadata_null(): void
+    {
+        $stmt = Mockery::mock(PDOStatement::class);
+        $stmt->allows('execute')->once()->andReturn(true);
+        $stmt->allows('fetch')->with(PDO::FETCH_ASSOC)->andReturn(['id' => 1, 'metadata' => null]);
+
+        $this->pdo->allows('prepare')
+            ->with('SELECT * FROM widgets WHERE id = :id')
+            ->andReturn($stmt);
+
+        $this->assertSame([], $this->repo('database')->getAllMeta(1));
+    }
+
+    public function test_get_all_meta_returns_empty_when_row_not_found(): void
+    {
+        $stmt = Mockery::mock(PDOStatement::class);
+        $stmt->allows('execute')->once()->andReturn(true);
+        $stmt->allows('fetch')->with(PDO::FETCH_ASSOC)->andReturn(false);
+
+        $this->pdo->allows('prepare')
+            ->with('SELECT * FROM widgets WHERE id = :id')
+            ->andReturn($stmt);
+
+        $this->assertSame([], $this->repo('database')->getAllMeta(99));
+    }
+
     public function test_transaction_methods_delegate_to_pdo(): void
     {
         $this->pdo->allows('beginTransaction')->once()->andReturn(true);

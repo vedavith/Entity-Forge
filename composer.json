@@ -3,6 +3,31 @@
     "description": "A configuration-driven PHP framework for generating entity models and building multi-tenant SaaS applications.",
     "type": "library",
     "license": "MIT",
+    "keywords": [
+        "php",
+        "saas",
+        "multi-tenant",
+        "multitenancy",
+        "orm",
+        "entity",
+        "repository",
+        "migrations",
+        "code-generation",
+        "database-per-tenant",
+        "tenant-isolation",
+        "symfony-console",
+        "pdo",
+        "framework"
+    ],
+    "homepage": "https://entityforge.dev",
+    "authors": [
+        {
+            "name": "Vedavith Ravula",
+            "email": "gangumalladeepthi@gmail.com",
+            "homepage": "https://github.com/vedavith",
+            "role": "Developer"
+        }
+    ],
     "autoload": {
         "psr-4": {
             "EntityForge\\": "src/",
