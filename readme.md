@@ -64,8 +64,6 @@ php -S localhost:8181 -t public
 composer require entity-forge/entity-forge
 ```
 
-> Package publication to Packagist is pending. Clone the repo and run `composer install` to use locally.
-
 ---
 
 ## Quick Start
@@ -195,6 +193,9 @@ $response->send();
 | `tenant:create <id>` | `--name` | Onboard a new tenant |
 | `make:middleware <Name>` | `--auth`, `--output` | Scaffold a middleware class (use `--auth` for `AuthMiddlewareInterface` stub) |
 | `make:controller <Name>` | `--output` | Scaffold a controller class with CRUD stubs |
+| `field:add <entity> <field_name> <type>` | `--tenant`, `--label`, `--required` | Register a custom field definition for a tenant |
+| `field:list <entity>` | `--tenant` | List all custom fields registered for a tenant entity |
+| `field:remove <id>` | `--tenant` | Remove a custom field definition by ID |
 
 `generate:all` uses a single `EntityGenerator` instance to guarantee monotonically ordered migration timestamps within a session.
 
@@ -522,6 +523,45 @@ $response = $pipeline->run(Request::capture(), fn($req) => $router->dispatch($re
 ```
 
 Auth runs before tenant resolution if the tenant ID is embedded in the token. Reverse the order if the tenant is resolved from the URL and auth is tenant-scoped.
+
+---
+
+## Dynamic Schema Extension
+
+Tenants can define their own custom fields on any opted-in entity without touching migrations. Add `"metadata": true` to the entity schema:
+
+```json
+{
+  "entity": "Account",
+  "metadata": true,
+  "fields": { "name": "string", "email": "string" }
+}
+```
+
+This emits a `metadata JSON NULL` column in the migration and `getMeta`/`setMeta`/`getAllMeta` methods on the repository. A `tenant_fields` table (auto-created by `CoreSchemaManager`) stores each tenant's field definitions.
+
+```bash
+# Register a custom field for tenant "beta" on the accounts entity
+php bin/ef field:add accounts vat_number string --tenant=beta --label="VAT Number"
+
+# List all custom fields for a tenant entity
+php bin/ef field:list accounts --tenant=beta
+
+# Remove a field by ID (shown in field:list output)
+php bin/ef field:remove 1 --tenant=beta
+```
+
+Read and write custom field values via the repository:
+
+```php
+$repo = new AccountRepository($app->getConfig());
+
+$repo->setMeta(42, 'vat_number', 'GB123456789');
+$vatNumber = $repo->getMeta(42, 'vat_number');
+$allMeta   = $repo->getAllMeta(42);  // ['vat_number' => 'GB123456789']
+```
+
+Works identically with both `shared` and `database` tenancy strategies.
 
 ---
 
