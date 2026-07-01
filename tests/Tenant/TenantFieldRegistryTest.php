@@ -214,4 +214,49 @@ class TenantFieldRegistryTest extends TestCase
 
         $this->assertTrue(true);
     }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_validate_passes_for_float_value(): void
+    {
+        $conn = Mockery::mock('overload:' . Connection::class);
+        $conn->allows('getPdo')->andReturn($this->pdo);
+
+        $registry = new TenantFieldRegistry($this->config());
+
+        $fields = [['field_name' => 'rate', 'field_type' => 'float', 'required' => false]];
+        $registry->validate(['rate' => 1.5], $fields);
+
+        $this->assertTrue(true);
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_validate_passes_for_bool_value(): void
+    {
+        $conn = Mockery::mock('overload:' . Connection::class);
+        $conn->allows('getPdo')->andReturn($this->pdo);
+
+        $registry = new TenantFieldRegistry($this->config());
+
+        $fields = [['field_name' => 'active', 'field_type' => 'bool', 'required' => false]];
+        $registry->validate(['active' => true], $fields);
+
+        $this->assertTrue(true);
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_validate_unknown_type_passes_without_error(): void
+    {
+        $conn = Mockery::mock('overload:' . Connection::class);
+        $conn->allows('getPdo')->andReturn($this->pdo);
+
+        $registry = new TenantFieldRegistry($this->config());
+
+        $fields = [['field_name' => 'misc', 'field_type' => 'unknown', 'required' => false]];
+        $registry->validate(['misc' => 'anything'], $fields);
+
+        $this->assertTrue(true);
+    }
 }

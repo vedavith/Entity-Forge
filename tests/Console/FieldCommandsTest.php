@@ -169,6 +169,42 @@ class FieldCommandsTest extends TestCase
         $this->assertSame(1, $code);
     }
 
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_field_list_shows_required_label(): void
+    {
+        $this->mockApp();
+
+        $fields = [
+            ['id' => 2, 'field_name' => 'vat_number', 'field_type' => 'string', 'label' => 'VAT Number', 'required' => 1],
+        ];
+
+        $registry = Mockery::mock('overload:' . TenantFieldRegistry::class);
+        $registry->allows('fieldsFor')->andReturn($fields);
+
+        $tester = new CommandTester(new FieldListCommand());
+        $code   = $tester->execute(['entity' => 'accounts', '--tenant' => 'beta']);
+
+        $this->assertSame(0, $code);
+        $this->assertStringContainsString('[required]', $tester->getDisplay());
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_field_list_returns_failure_on_exception(): void
+    {
+        $this->mockApp();
+
+        $registry = Mockery::mock('overload:' . TenantFieldRegistry::class);
+        $registry->allows('fieldsFor')->andThrow(new \RuntimeException('DB error'));
+
+        $tester = new CommandTester(new FieldListCommand());
+        $code   = $tester->execute(['entity' => 'accounts', '--tenant' => 'beta']);
+
+        $this->assertSame(1, $code);
+        $this->assertStringContainsString('DB error', $tester->getDisplay());
+    }
+
     // ── field:remove ───────────────────────────────────────────────────────────
 
     #[RunInSeparateProcess]
@@ -196,5 +232,21 @@ class FieldCommandsTest extends TestCase
         $code   = $tester->execute(['id' => '3']);
 
         $this->assertSame(1, $code);
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_field_remove_returns_failure_on_exception(): void
+    {
+        $this->mockApp();
+
+        $registry = Mockery::mock('overload:' . TenantFieldRegistry::class);
+        $registry->allows('remove')->andThrow(new \RuntimeException('DB error'));
+
+        $tester = new CommandTester(new FieldRemoveCommand());
+        $code   = $tester->execute(['id' => '5', '--tenant' => 'beta']);
+
+        $this->assertSame(1, $code);
+        $this->assertStringContainsString('DB error', $tester->getDisplay());
     }
 }
